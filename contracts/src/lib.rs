@@ -10,6 +10,14 @@ sol!(
 
 sol!(
     #[allow(missing_docs)]
+    #[derive(Debug)]
+    #[sol(rpc)]
+    IBlsApkRegistry,
+    "out/IBLSApkRegistry.sol/IBLSApkRegistry.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
     #[sol(rpc)]
     ServiceManagerBase,
     "out/ServiceManagerBase.sol/ServiceManagerBase.json"
@@ -20,6 +28,13 @@ sol!(
     #[sol(rpc)]
     StakeRegistry,
     "out/StakeRegistry.sol/StakeRegistry.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    IStakeRegistry,
+    "out/IStakeRegistry.sol/IStakeRegistry.json"
 );
 
 sol!(
@@ -88,8 +103,15 @@ sol!(
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
-    IndexRegistry,
+    IIndexRegistry,
     "out/IIndexRegistry.sol/IIndexRegistry.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    IndexRegistry,
+    "lib/eigenlayer-middleware/out/IndexRegistry.sol/IndexRegistry.json"
 );
 
 sol!(
@@ -117,7 +139,7 @@ sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     EigenStrategy,
-    "lib/eigenlayer-contracts/out/EigenStrategy.sol/EigenStrategy.json"
+    "out/EigenStrategy.sol/EigenStrategy.json"
 );
 
 sol!(
@@ -160,4 +182,11 @@ sol!(
     #[sol(rpc)]
     ERC20Mock,
     "lib/eigenlayer-contracts/out/ERC20Mock.sol/ERC20Mock.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    EmptyContract,
+    "lib/eigenlayer-contracts/out/EmptyContract.sol/EmptyContract.json"
 );

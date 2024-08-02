@@ -59,7 +59,7 @@ pub enum OperatorError {
     #[error("Cannot get operator id: {0}")]
     OperatorIdError(String),
     #[error(
-        "Operator is not registered. Register using the operator-cli before starting operator."
+    "Operator is not registered. Register using the operator-cli before starting operator."
     )]
     OperatorNotRegistered,
     #[error("Error in metrics server: {0}")]
@@ -209,7 +209,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             &config.bls_private_key_store_path,
             &bls_key_password,
         )
-        .map_err(OperatorError::from)?;
+            .map_err(OperatorError::from)?;
 
         let _chain_id = eth_client_http
             .get_chain_id()
@@ -224,7 +224,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             &config.ecdsa_private_key_store_path,
             &ecdsa_key_password,
         )
-        .unwrap();
+            .unwrap();
         let ecdsa_signing_key = SigningKey::from(&ecdsa_secret_key);
         // TODO: Ecdsa signing key is not used
 
@@ -247,8 +247,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             eth_client_ws.clone(),
             signer.clone(),
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
 
         log::info!("About to build AVS Registry Contract Manager");
         let avs_registry_contract_manager = AvsRegistryContractManager::build(
@@ -261,8 +261,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             eth_client_ws.clone(),
             signer.clone(),
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
 
         log::info!("About to build aggregator service");
         let aggregator_service = Aggregator::build(
@@ -270,8 +270,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             operator_info_service,
             config.server_ip_port_address.clone(),
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
 
         log::info!("About to build aggregator RPC client");
         let aggregator_rpc_client = AggregatorRpcClient::new(config.server_ip_port_address.clone());
@@ -284,8 +284,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             eth_client_ws.clone(),
             signer.clone(),
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
 
         log::info!("About to get operator id and address");
         let operator_addr = Address::from_str(&config.operator_address).unwrap();
@@ -357,9 +357,9 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             .avs_registry_contract_manager
             .is_operator_registered(self.operator_addr)
             .await; //?;
-                    // if !operator_is_registered {
-                    //     return Err(OperatorError::OperatorNotRegistered);
-                    // }
+        // if !operator_is_registered {
+        //     return Err(OperatorError::OperatorNotRegistered);
+        // }
         log::info!("Operator registration status: {:?}", operator_is_registered);
 
         if self.config.enable_node_api {
@@ -449,22 +449,33 @@ mod tests {
     use k256::ecdsa::VerifyingKey;
     use k256::elliptic_curve::SecretKey;
     use std::path::Path;
-    use std::time::Duration; //, Bytes, U256};
+    use std::time::Duration;
+    use std::vec;
+    //, Bytes, U256};
 
     static BLS_PASSWORD: &str = "BLS_PASSWORD";
     static ECDSA_PASSWORD: &str = "ECDSA_PASSWORD";
+    static TASK_RESPONSE_WINDOW_BLOCK: u32 = 10;
+    static TASK_DURATION_BLOCKS: u32 = 0;
+    // static QUORUM_THRESHOLD_PERCENTAGE: U256 = U256::from(100);
+    static AGGREGATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
+    static TASK_GENERATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
 
-    // use alloy::signers::Signer;
-    // use alloy_provider::network::{TransactionBuilder, TxSigner};
-    // use crate::avs;
-    // use avs::IncredibleSquaringServiceManager;
-    // use eigen_contracts::*;
-    // use gadget_common::subxt_signer::bip39::rand_core::OsRng;
-    // use alloy_rpc_types_eth::BlockId;
-    // use anvil::spawn;
-    // use ark_bn254::Fq as F;
-    // use ark_bn254::{Fr, G1Affine, G2Affine, G2Projective};
-    // use url::Url;
+    use crate::avs;
+    use alloy::signers::Signer;
+    use alloy_provider::network::{TransactionBuilder, TxSigner};
+    use alloy_rpc_types_eth::BlockId;
+    use alloy_sol_types::private::SolTypeValue;
+    use anvil::spawn;
+    use ark_bn254::Fq as F;
+    use ark_bn254::{Fr, G1Affine, G2Affine, G2Projective};
+    use avs::IncredibleSquaringServiceManager;
+    use eigen_contracts::RegistryCoordinator::{OperatorSetParam, StrategyParams};
+    use eigen_contracts::*;
+    use ethabi::ethereum_types::H160;
+    use ethabi::{encode, Token};
+    use gadget_common::subxt_signer::bip39::rand_core::OsRng;
+    use url::Url;
 
     struct ContractAddresses {
         pub service_manager: Address,
@@ -477,7 +488,7 @@ mod tests {
 
     // async fn run_anvil_testnet() -> ContractAddresses {
     //     // Initialize the logger
-    //     env_logger::init();
+    //     let _ = env_logger::try_init();
     //
     //     let (api, mut handle) = spawn(anvil::NodeConfig::test().with_port(33125)).await;
     //     api.anvil_auto_impersonate_account(true).await.unwrap();
@@ -511,6 +522,14 @@ mod tests {
     //     // Empty address for initial deployment of all contracts
     //     let empty_address = Address::default();
     //
+    //     // let strategy_manager_addr = address!("Dc64a140Aa3E981100a9becA4E685f962f0cF6C9");
+    //     // let delegation_manager_addr = address!("Cf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9");
+    //     // let avs_directory_addr = address!("5FC8d32690cc91D4c39d9d3abcBD16989F875707");
+    //     // let proxy_admin_addr = address!("5FbDB2315678afecb367f032d93F642f64180aa3");
+    //     // let pauser_registry_addr = address!("e7f1725E7734CE288F8367e1Bb143E90bb3F0512");
+    //     // let base_strategy_addr = address!("322813Fd9A801c5507c9de605d63CEA4f2CE6c44");
+    //
+    //     // Deploy Eigenlayer Contracts
     //     let strategy_manager_addr = address!("Dc64a140Aa3E981100a9becA4E685f962f0cF6C9");
     //     let delegation_manager_addr = address!("Cf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9");
     //     let avs_directory_addr = address!("5FC8d32690cc91D4c39d9d3abcBD16989F875707");
@@ -525,116 +544,314 @@ mod tests {
     //     let proxy_admin = ProxyAdmin::new(proxy_admin_addr, provider.clone());
     //     let pauser_registry = PauserRegistry::new(pauser_registry_addr, provider.clone());
     //     let base_strategy = StrategyBaseTVLLimits::new(base_strategy_addr, provider.clone());
+    //     // let istrategy_manager = IStrategyManager::deploy(provider.clone()).await.unwrap();
+    //     // let &strategy_manager_addr = istrategy_manager.address();
+    //     //
+    //     // let idelegation_manager = IDelegationManager::deploy(provider.clone()).await.unwrap();
+    //     // let &delegation_manager_addr = idelegation_manager.address();
+    //     //
+    //     // let iavs_directory = IAVSDirectory::deploy(provider.clone()).await.unwrap();
+    //     // let &avs_directory_addr = iavs_directory.address();
+    //     //
+    //     // let proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
+    //     // let &proxy_admin_addr = proxy_admin.address();
+    //     //
+    //     // let pauser_registry = PauserRegistry::deploy(provider.clone()).await.unwrap();
+    //     // let &pauser_registry_addr = pauser_registry.address();
+    //     //
+    //     // let base_strategy = StrategyBaseTVLLimits::deploy(provider.clone(), Default::default())
+    //     //     .await
+    //     //     .unwrap();
+    //     // let &base_strategy_addr = base_strategy.address();
     //
-    //     // let erc20_mock = ERC20Mock::new(
-    //     //     TransparentUpgradeableProxy::deploy(
-    //     //         provider.clone(),
-    //     //         base_strategy_addr,
-    //     //         proxy_admin_addr,
-    //     //     )
-    //     // );
+    //     let erc20_mock = ERC20Mock::deploy(provider.clone()).await.unwrap();
+    //     let &erc20_mock_addr = erc20_mock.address();
     //
-    //     // Deploy contracts for Incredible Squaring
-    //     let registry_coordinator = RegistryCoordinator::deploy(
+    //     let ierc20 = IERC20::new(erc20_mock_addr, provider.clone());
+    //     let &ierc20_addr = ierc20.address();
+    //
+    //     let tokens = vec![
+    //         Token::Uint(1.into()),
+    //         Token::Uint(100.into()),
+    //         Token::Address(H160::from_slice(ierc20_addr.as_slice())),
+    //         Token::Address(H160::from_slice(pauser_registry_addr.as_slice())),
+    //     ];
+    //     let encoded_data = encode(&tokens);
+    //     let strategy_proxy = TransparentUpgradeableProxy::deploy(
     //         provider.clone(),
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
+    //         base_strategy_addr,
+    //         proxy_admin_addr,
+    //         alloy_primitives::Bytes::from(encoded_data),
     //     )
     //     .await
     //     .unwrap();
-    //     let registry_coordinator_addr = registry_coordinator.address();
+    //     let &strategy_proxy_addr = strategy_proxy.address();
     //
-    //     let index_registry = IndexRegistry::deploy(provider.clone()).await.unwrap();
-    //     let index_registry_addr = index_registry.address();
-    //
-    //     let bls_apk_registry = BlsApkRegistry::deploy(provider.clone(), empty_address)
-    //         .await
-    //         .unwrap();
-    //     let bls_apk_registry_addr = bls_apk_registry.address();
-    //
-    //     let stake_registry = StakeRegistry::deploy(provider.clone(), empty_address, empty_address)
-    //         .await
-    //         .unwrap();
-    //     let stake_registry_addr = stake_registry.address();
-    //
-    //     let slasher = ISlasher::deploy(provider.clone()).await.unwrap();
-    //     let slasher_addr = slasher.address();
-    //
-    //     let eigen_pod_manager = EigenPodManager::deploy(
-    //         provider.clone(),
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
-    //     )
-    //     .await
-    //     .unwrap();
-    //     let eigen_pod_manager_addr = eigen_pod_manager.address();
-    //
-    //     let delegation_manager = DelegationManager::deploy(
-    //         provider.clone(),
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
-    //     )
-    //     .await
-    //     .unwrap();
-    //     let delegation_manager_addr = delegation_manager.address();
-    //
-    //     let avs_directory = AVSDirectory::deploy(provider.clone(), empty_address.clone())
-    //         .await
-    //         .unwrap();
-    //     let avs_directory_addr = avs_directory.address();
-    //
-    //     let state_retriever = OperatorStateRetriever::deploy(provider.clone())
-    //         .await
-    //         .unwrap();
-    //     let state_retriever_addr = state_retriever.address();
-    //
-    //     let task_manager =
-    //         IncredibleSquaringTaskManager::deploy(provider.clone(), empty_address, 5u32)
+    //     let erc20_mock_strategy =
+    //         StrategyBaseTVLLimits::deploy(provider.clone(), strategy_proxy_addr)
     //             .await
     //             .unwrap();
-    //     let task_manager_addr = task_manager.address();
+    //     let &erc20_mock_strategy_addr = erc20_mock_strategy.address();
     //
-    //     let service_manager = IncredibleSquaringServiceManager::deploy(
+    //     let strategies = vec![erc20_mock_strategy_addr];
+    //
+    //     let add_strategies = istrategy_manager
+    //         .addStrategiesToDepositWhitelist(strategies, vec![false])
+    //         .send()
+    //         .await
+    //         .unwrap()
+    //         .get_receipt()
+    //         .await
+    //         .unwrap();
+    //     println!("Add Strategies Receipt: {:?}", add_strategies);
+    //
+    //     // Deploy Incredible Squaring Contracts
+    //     let number_of_strategies = strategies.len();
+    //
+    //     let incredible_squaring_proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
+    //     let &incredible_squaring_proxy_admin_addr = incredible_squaring_proxy_admin.address();
+    //
+    //     let pausers = vec![
+    //         address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+    //         address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+    //     ];
+    //
+    //     let incredible_squaring_pauser_registry_addr =
+    //         PauserRegistry::deploy_builder(provider.clone())
+    //             .from(from)
+    //             .send()
+    //             .await
+    //             .unwrap()
+    //             .get_receipt()
+    //             .await
+    //             .unwrap()
+    //             .contract_address
+    //             .unwrap();
+    //     let incredible_squaring_pauser_registry =
+    //         PauserRegistry::new(incredible_squaring_pauser_registry_addr, provider.clone());
+    //     let is_pauser = incredible_squaring_pauser_registry
+    //         .isPauser(address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"))
+    //         .call()
+    //         .await
+    //         .unwrap();
+    //     println!("Is Dev Account 0 Pauser: {:?}", is_pauser._0);
+    //
+    //     let empty_contract = EmptyContract::deploy(provider.clone()).await.unwrap();
+    //     let &empty_contract_addr = empty_contract.address();
+    //
+    //     let incredible_squaring_service_manager = IncredibleSquaringServiceManager::new(
+    //         TransparentUpgradeableProxy::deploy(
+    //             provider.clone(),
+    //             empty_contract_addr,
+    //             incredible_squaring_proxy_admin_addr,
+    //             Bytes::from(""),
+    //         )
+    //         .await
+    //         .unwrap(),
     //         provider.clone(),
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
-    //         empty_address,
+    //     );
+    //     let &incredible_squaring_service_manager_addr =
+    //         incredible_squaring_service_manager.address();
+    //
+    //     let incredible_squaring_task_manager = IncredibleSquaringTaskManager::new(
+    //         TransparentUpgradeableProxy::deploy(
+    //             provider.clone(),
+    //             empty_contract_addr,
+    //             incredible_squaring_proxy_admin_addr,
+    //             Bytes::from(""),
+    //         )
+    //         .await
+    //         .unwrap(),
+    //         provider.clone(),
+    //     );
+    //     let &incredible_squaring_task_manager_addr = incredible_squaring_task_manager.address();
+    //
+    //     let registry_coordinator = RegistryCoordinator::new(
+    //         TransparentUpgradeableProxy::deploy(
+    //             provider.clone(),
+    //             empty_contract_addr,
+    //             incredible_squaring_proxy_admin_addr,
+    //             Bytes::from(""),
+    //         )
+    //         .await
+    //         .unwrap(),
+    //         provider.clone(),
+    //     );
+    //     let &registry_coordinator_addr = registry_coordinator.address();
+    //
+    //     let bls_apk_registry = BlsApkRegistry::new(
+    //         TransparentUpgradeableProxy::deploy(
+    //             provider.clone(),
+    //             empty_contract_addr,
+    //             incredible_squaring_proxy_admin_addr,
+    //             Bytes::from(""),
+    //         )
+    //         .await
+    //         .unwrap(),
+    //         provider.clone(),
+    //     );
+    //     let &bls_apk_registry_addr = bls_apk_registry.address();
+    //
+    //     let bls_apk_registry = IBlsApkRegistry::new(
+    //         TransparentUpgradeableProxy::deploy(
+    //             provider.clone(),
+    //             empty_contract_addr,
+    //             incredible_squaring_proxy_admin_addr,
+    //             Bytes::from(""),
+    //         )
+    //         .await
+    //         .unwrap(),
+    //         provider.clone(),
+    //     );
+    //     let &bls_apk_registry_addr = bls_apk_registry.address();
+    //
+    //     let index_registry = IIndexRegistry::new(
+    //         TransparentUpgradeableProxy::deploy(
+    //             provider.clone(),
+    //             empty_contract_addr,
+    //             incredible_squaring_proxy_admin_addr,
+    //             Bytes::from(""),
+    //         )
+    //         .await
+    //         .unwrap(),
+    //         provider.clone(),
+    //     );
+    //     let &index_registry_addr = index_registry.address();
+    //
+    //     let stake_registry = IStakeRegistry::new(
+    //         TransparentUpgradeableProxy::deploy(
+    //             provider.clone(),
+    //             empty_contract_addr,
+    //             incredible_squaring_proxy_admin_addr,
+    //             Bytes::from(""),
+    //         )
+    //         .await
+    //         .unwrap(),
+    //         provider.clone(),
+    //     );
+    //     let &stake_registry_addr = stake_registry.address();
+    //
+    //     let operator_state_retriever = OperatorStateRetriever::deploy(provider.clone())
+    //         .await
+    //         .unwrap();
+    //     let &operator_state_retriever_addr = operator_state_retriever.address();
+    //
+    //     //Now, deploy the implementation contracts using the proxy contracts as inputs
+    //     let stake_registry_implementation = StakeRegistry::deploy(
+    //         provider.clone(),
+    //         registry_coordinator_addr,
+    //         delegation_manager_addr,
     //     )
     //     .await
     //     .unwrap();
-    //     let service_manager_addr = service_manager.address();
-    //
-    //     let eigen_strategy = EigenStrategy::deploy(provider.clone(), empty_address)
+    //     let &stake_registry_implementation_addr = stake_registry_implementation.address();
+    //     let stake_registry_upgrade = incredible_squaring_proxy_admin
+    //         .upgrade(stake_registry_addr, stake_registry_implementation_addr)
+    //         .send()
+    //         .await
+    //         .unwrap()
+    //         .get_receipt()
     //         .await
     //         .unwrap();
-    //     let eigen_strategy_addr = eigen_strategy.address();
+    //     log::info!(
+    //         "Stake Registry Upgrade Receipt: {:?}",
+    //         stake_registry_upgrade
+    //     );
     //
-    //     api.mine_one().await;
+    //     let bls_apk_registry_implementation =
+    //         BlsApkRegistry::deploy(provider.clone(), registry_coordinator_addr)
+    //             .await
+    //             .unwrap();
+    //     let &bls_apk_registry_implementation_addr = bls_apk_registry_implementation.address();
+    //     let bls_apk_registry_upgrade = incredible_squaring_proxy_admin
+    //         .upgrade(bls_apk_registry_addr, bls_apk_registry_implementation_addr)
+    //         .send()
+    //         .await
+    //         .unwrap()
+    //         .get_receipt()
+    //         .await
+    //         .unwrap();
+    //     log::info!(
+    //         "Bls Apk Registry Upgrade Receipt: {:?}",
+    //         bls_apk_registry_upgrade
+    //     );
     //
-    //     let rc_init = registry_coordinator
-    //         .initialize(
-    //             from,
-    //             from,
-    //             from,
-    //             pauser_registry_addr,
-    //             Default::default(),
-    //             vec![OperatorSetParam {
-    //                 maxOperatorCount: 10,
-    //                 kickBIPsOfOperatorStake: 5,
-    //                 kickBIPsOfTotalStake: 2,
-    //             }],
-    //             vec![10],
-    //             vec![vec![StrategyParams {
-    //                 strategy: *eigen_strategy_addr,
-    //                 multiplier: 2,
-    //             }]],
+    //     let index_registry_implementation =
+    //         IndexRegistry::deploy(provider.clone(), registry_coordinator_addr)
+    //             .await
+    //             .unwrap();
+    //     let &index_registry_implementation_addr = index_registry_implementation.address();
+    //     let index_registry_upgrade = incredible_squaring_proxy_admin
+    //         .upgrade(index_registry_addr, index_registry_implementation_addr)
+    //         .send()
+    //         .await
+    //         .unwrap()
+    //         .get_receipt()
+    //         .await
+    //         .unwrap();
+    //     log::info!(
+    //         "Index Registry Upgrade Receipt: {:?}",
+    //         index_registry_upgrade
+    //     );
+    //
+    //     let registry_coordinator_implementation = RegistryCoordinator::deploy(
+    //         provider.clone(),
+    //         incredible_squaring_service_manager_addr,
+    //         stake_registry_addr,
+    //         bls_apk_registry_addr,
+    //         index_registry_addr,
+    //     )
+    //     .await
+    //     .unwrap();
+    //     let &registry_coordinator_implementation_addr =
+    //         registry_coordinator_implementation.address();
+    //     // let registry_coordinator_upgrade = incredible_squaring_proxy_admin.upgrade(
+    //     //     registry_coordinator_addr,
+    //     //     registry_coordinator_implementation_addr,
+    //     // ).send().await.unwrap().get_receipt().await.unwrap();
+    //     // log::info!("Registry Coordinator Upgrade Receipt: {:?}", registry_coordinator_upgrade);
+    //
+    //     let number_of_quorums = 1;
+    //     // For each quorum we want to set up, we must define QuorumOperatorSetParam, minimumStakeForQuorum, and strategyParams
+    //     let mut quorum_operator_set_params = Vec::<OperatorSetParam>::new();
+    //     for i in 0..number_of_quorums {
+    //         log::info!("Deploying quorum {}", i);
+    //         quorum_operator_set_params.push(OperatorSetParam {
+    //             maxOperatorCount: 10000,
+    //             kickBIPsOfOperatorStake: 15000,
+    //             kickBIPsOfTotalStake: 100,
+    //         });
+    //     }
+    //     // Set to 0 for each quorum
+    //     let quorums_minimum_stake = Vec::<u128>::new();
+    //     let mut quorums_strategy_params = Vec::<Vec<StrategyParams>>::new();
+    //
+    //     for j in 0..number_of_quorums {
+    //         quorums_strategy_params.push(Vec::<StrategyParams>::new());
+    //         for k in 0..number_of_strategies {
+    //             quorums_strategy_params[j][k] = StrategyParams {
+    //                 strategy: strategies[j],
+    //                 multiplier: 1,
+    //             }
+    //         }
+    //     }
+    //
+    //     let tokens = vec![
+    //         Token::Address(H160::from_slice(pausers[0].as_slice())),
+    //         Token::Address(H160::from_slice(pausers[0].as_slice())),
+    //         Token::Address(H160::from_slice(pausers[0].as_slice())),
+    //         Token::Address(H160::from_slice(pausers[1].as_slice())),
+    //         Token::Uint(0.into()),
+    //         Token::Array(quorum_operator_set_params),
+    //         Token::Array(quorums_minimum_stake),
+    //         Token::Array(quorums_strategy_params),
+    //     ];
+    //     let encoded_data = encode(&tokens);
+    //     let registry_coordinator_upgrade = incredible_squaring_proxy_admin
+    //         .upgradeAndCall(
+    //             registry_coordinator_addr,
+    //             registry_coordinator_implementation_addr,
+    //             alloy_primitives::Bytes::from(encoded_data),
     //         )
     //         .send()
     //         .await
@@ -642,82 +859,153 @@ mod tests {
     //         .get_receipt()
     //         .await
     //         .unwrap();
-    //     println!("Registry Coordinator Initialization Receipt: {:?}", rc_init);
+    //     log::info!(
+    //         "Registry Coordinator Upgrade Receipt: {:?}",
+    //         registry_coordinator_upgrade
+    //     );
     //
-    //     let _block = provider
-    //         .get_block(BlockId::latest(), false.into())
+    //     let incredible_squaring_service_manager_implementation =
+    //         IncredibleSquaringServiceManager::deploy(
+    //             provider.clone(),
+    //             avs_directory_addr,
+    //             registry_coordinator_addr,
+    //             stake_registry_addr,
+    //             incredible_squaring_task_manager_addr,
+    //         )
+    //         .await
+    //         .unwrap();
+    //     let &incredible_squaring_service_manager_implementation_addr =
+    //         incredible_squaring_service_manager_implementation.address();
+    //     let incredible_squaring_service_manager_upgrade = incredible_squaring_proxy_admin
+    //         .upgrade(
+    //             incredible_squaring_service_manager_addr,
+    //             incredible_squaring_service_manager_implementation_addr,
+    //         )
+    //         .send()
     //         .await
     //         .unwrap()
+    //         .get_receipt()
+    //         .await
     //         .unwrap();
+    //     log::info!(
+    //         "Incredible Squaring Service Manager Upgrade Receipt: {:?}",
+    //         incredible_squaring_service_manager_upgrade
+    //     );
     //
-    //     api.anvil_set_auto_mine(true).await.unwrap();
-    //     let run_testnet = async move {
-    //         let serv = handle.servers.pop().unwrap();
-    //         let res = serv.await.unwrap();
-    //         res.unwrap();
-    //     };
-    //     let spawner_task_manager_address = task_manager_addr.clone();
-    //     // let spawner_provider = provider.clone();
-    //     let spawner_provider = provider;
-    //     let task_spawner = async move {
-    //         let manager = IncredibleSquaringTaskManager::new(
-    //             spawner_task_manager_address,
-    //             spawner_provider.clone(),
-    //         );
-    //         loop {
-    //             api.mine_one().await;
-    //             log::info!("About to create new task");
-    //             tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
-    //             let result = manager
-    //                 .createNewTask(U256::from(2), 100u32, Bytes::from("0"))
-    //                 .send()
-    //                 .await
-    //                 .unwrap()
-    //                 .watch()
-    //                 .await
-    //                 .unwrap();
-    //             api.mine_one().await;
-    //             log::info!("Created new task: {:?}", result);
-    //             // let latest_task = manager.latestTaskNum().call().await.unwrap()._0;
-    //             // log::info!("Latest task: {:?}", latest_task);
-    //             // let task_hash = manager.allTaskHashes(latest_task).call().await.unwrap()._0;
-    //             // log::info!("Task info: {:?}", task_hash);
-    //         }
-    //     };
-    //     tokio::spawn(run_testnet);
-    //     tokio::spawn(task_spawner);
+    //     let tokens = vec![
+    //         Token::Address(H160::from_slice(pauser_registry_addr.as_slice())),
+    //         Token::Address(H160::from_slice(pausers[0].as_slice())),
+    //         Token::Address(H160::from_slice(AGGREGATOR_ADDR.as_slice())),
+    //         Token::Address(H160::from_slice(TASK_GENERATOR_ADDR.as_slice())),
+    //     ];
+    //     let encoded_data = encode(&tokens);
+    //     let incredible_squaring_task_manager_implementation =
+    //         IncredibleSquaringTaskManager::deploy(
+    //             provider.clone(),
+    //             registry_coordinator_addr,
+    //             TASK_RESPONSE_WINDOW_BLOCK,
+    //         )
+    //         .await
+    //         .unwrap();
+    //     let &incredible_squaring_task_manager_implementation_addr =
+    //         incredible_squaring_task_manager_implementation.address();
+    //     let incredible_squaring_task_manager_upgrade = incredible_squaring_proxy_admin
+    //         .upgradeAndCall(
+    //             incredible_squaring_task_manager_addr,
+    //             incredible_squaring_service_manager_implementation_addr,
+    //             alloy_primitives::Bytes::from(encoded_data),
+    //         )
+    //         .send()
+    //         .await
+    //         .unwrap()
+    //         .get_receipt()
+    //         .await
+    //         .unwrap();
+    //     log::info!(
+    //         "Incredible Squaring Task Manager Upgrade Receipt: {:?}",
+    //         incredible_squaring_task_manager_upgrade
+    //     );
     //
-    //     // let ws = ProviderBuilder::new().on_ws(WsConnect::new(handle.ws_endpoint())).await.unwrap();
+    //     log::info!("ERC20MOCK ADDRESS: {:?}", erc20_mock_addr);
+    //     log::info!("ERC20MOCK STRATEGY ADDRESS: {:?}", erc20_mock_strategy_addr);
+    //     log::info!(
+    //         "INCREDIBLE SQUARING TASK MANAGER ADDRESS: {:?}",
+    //         incredible_squaring_task_manager_addr
+    //     );
+    //     log::info!(
+    //         "INCREDIBLE SQUARING TASK MANAGER IMPLEMENTATION ADDRESS: {:?}",
+    //         incredible_squaring_task_manager_implementation_addr
+    //     );
+    //     log::info!(
+    //         "INCREDIBLE SQUARING SERVICE MANAGER ADDRESS: {:?}",
+    //         incredible_squaring_service_manager_addr
+    //     );
+    //     log::info!(
+    //         "INCREDIBLE SQUARING SERVICE MANAGER IMPLEMENTATION ADDRESS: {:?}",
+    //         incredible_squaring_service_manager_implementation_addr
+    //     );
+    //     log::info!(
+    //         "REGISTRY COORDINATOR ADDRESS: {:?}",
+    //         registry_coordinator_addr
+    //     );
+    //     log::info!(
+    //         "REGISTRY COORDINATOR IMPLEMENTATION ADDRESS: {:?}",
+    //         registry_coordinator_implementation_addr
+    //     );
+    //     log::info!(
+    //         "OPERATOR STATE RETRIEVER ADDRESS: {:?}",
+    //         operator_state_retriever_addr
+    //     );
+    //
+    //     // let _block = provider
+    //     //     .get_block(BlockId::latest(), false.into())
+    //     //     .await
+    //     //     .unwrap()
+    //     //     .unwrap();
     //     //
-    //     // // Subscribe to new blocks.
-    //     // let sub = ws.subscribe_blocks().await.unwrap();
-    //     //
-    //     // // Wait and take the next 4 blocks.
-    //     // let mut stream = sub.into_stream();
-    //     //
-    //     // log::warn!("Awaiting blocks...");
-    //     //
-    //     // // Take the stream and print the block number upon receiving a new block.
-    //     // let handle = tokio::spawn(async move {
-    //     //     log::warn!("About to mine blocks...");
-    //     //     api.mine_one().await;
-    //     //     while let Some(block) = stream.next().await {
-    //     //         log::warn!(
-    //     //             "Latest block number: {}",
-    //     //             block.header.number.expect("Failed to get block number")
-    //     //         );
+    //     // api.anvil_set_auto_mine(true).await.unwrap();
+    //     // let run_testnet = async move {
+    //     //     let serv = handle.servers.pop().unwrap();
+    //     //     let res = serv.await.unwrap();
+    //     //     res.unwrap();
+    //     // };
+    //     // let spawner_task_manager_address = task_manager_addr.clone();
+    //     // // let spawner_provider = provider.clone();
+    //     // let spawner_provider = provider;
+    //     // let task_spawner = async move {
+    //     //     let manager = IncredibleSquaringTaskManager::new(
+    //     //         spawner_task_manager_address,
+    //     //         spawner_provider.clone(),
+    //     //     );
+    //     //     loop {
     //     //         api.mine_one().await;
+    //     //         log::info!("About to create new task");
+    //     //         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+    //     //         let result = manager
+    //     //             .createNewTask(U256::from(2), 100u32, Bytes::from("0"))
+    //     //             .send()
+    //     //             .await
+    //     //             .unwrap()
+    //     //             .watch()
+    //     //             .await
+    //     //             .unwrap();
+    //     //         api.mine_one().await;
+    //     //         log::info!("Created new task: {:?}", result);
+    //     //         // let latest_task = manager.latestTaskNum().call().await.unwrap()._0;
+    //     //         // log::info!("Latest task: {:?}", latest_task);
+    //     //         // let task_hash = manager.allTaskHashes(latest_task).call().await.unwrap()._0;
+    //     //         // log::info!("Task info: {:?}", task_hash);
     //     //     }
-    //     // });
-    //     //
-    //     // handle.await.unwrap();
+    //     // };
+    //     // tokio::spawn(run_testnet);
+    //     // tokio::spawn(task_spawner);
     //
     //     ContractAddresses {
-    //         service_manager: *service_manager_addr,
-    //         registry_coordinator: *registry_coordinator_addr,
-    //         operator_state_retriever: *state_retriever_addr,
-    //         delegation_manager: *delegation_manager_addr,
-    //         avs_directory: *avs_directory_addr,
+    //         service_manager: incredible_squaring_service_manager_implementation_addr,
+    //         registry_coordinator: registry_coordinator_implementation_addr,
+    //         operator_state_retriever: operator_state_retriever_addr,
+    //         delegation_manager: delegation_manager_addr,
+    //         avs_directory: avs_directory_addr,
     //         operator: from,
     //     }
     // }
@@ -726,16 +1014,16 @@ mod tests {
     async fn test_anvil() {
         env_logger::init();
         // let contract_addresses = run_anvil_testnet().await;
-        let chain = eigen_utils::test_utils::local_chain::LocalEvmChain::new_with_chain_state(
-            31337,
-            String::from("eigen-testnet"),
-            Path::new("../../eigen-utils/saved-anvil-state.json"),
-            Some(8545u16),
-        );
-        let chain_id = chain.chain_id();
-        let chain_name = chain.name();
-        println!("chain_id: {:?}", chain_id);
-        println!("chain_name: {:?}", chain_name);
+        // let chain = eigen_utils::test_utils::local_chain::LocalEvmChain::new_with_chain_state(
+        //     31337,
+        //     String::from("eigen-testnet"),
+        //     Path::new("../../eigen-utils/saved-anvil-state.json"),
+        //     Some(8545u16),
+        // );
+        // let chain_id = chain.chain_id();
+        // let chain_name = chain.name();
+        // println!("chain_id: {:?}", chain_id);
+        // println!("chain_name: {:?}", chain_name);
 
         let contract_addresses = ContractAddresses {
             service_manager: address!("84eA74d481Ee0A5332c457a4d796187F6Ba67fEB"),
@@ -745,6 +1033,15 @@ mod tests {
             avs_directory: address!("5FC8d32690cc91D4c39d9d3abcBD16989F875707"),
             operator: address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
         };
+
+        // let contract_addresses = ContractAddresses {
+        //     service_manager: address!("84eA74d481Ee0A5332c457a4d796187F6Ba67fEB"),
+        //     registry_coordinator: address!("9d4454B023096f34B160D6B654540c56A1F81688"),
+        //     operator_state_retriever: address!("95401dc811bb5740090279Ba06cfA8fcF6113778"),
+        //     delegation_manager: address!("B7f8BC63BbcaD18155201308C8f3540b07f84F5e"),
+        //     avs_directory: address!("0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"),
+        //     operator: address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+        // };
 
         let http_endpoint = "http://127.0.0.1:8545";
         let ws_endpoint = "ws://127.0.0.1:8545";
@@ -807,8 +1104,8 @@ mod tests {
             operator_info_service,
             signer,
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
 
         operator.start().await.unwrap();
     }

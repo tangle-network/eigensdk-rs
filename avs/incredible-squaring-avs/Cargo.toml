@@ -46,6 +46,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 env_logger.workspace = true
+ethabi = "18.0.0"
 
 [dev-dependencies]
 anvil.workspace = true
