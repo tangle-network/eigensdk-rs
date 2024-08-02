@@ -1,0 +1,10 @@
+[package]
+name = "eigensdk-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eigen-contracts = { workspace = true }
+eigen-utils = { workspace = true }
+fireblocks-client = { workspace = true }
+aws-kms = { workspace = true }
