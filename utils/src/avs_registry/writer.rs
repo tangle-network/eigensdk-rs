@@ -1,9 +1,8 @@
 #![allow(async_fn_in_trait)]
-use alloy_primitives::{address, Address, Bytes, FixedBytes, U256};
+use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use alloy_provider::Provider;
 
 use crate::crypto::bls::{G1Point, KeyPair};
-use crate::crypto::bn254::{point_to_u256, u256_to_point};
 use crate::crypto::ecdsa::ToAddress;
 use crate::el_contracts::reader::ElReader;
 use crate::{types::*, Config};
@@ -11,8 +10,6 @@ use alloy_rpc_types::TransactionReceipt;
 use alloy_signer::k256::ecdsa;
 use alloy_signer::Signer;
 use eigen_contracts::RegistryCoordinator;
-use eigen_contracts::RegistryCoordinator::{OperatorSetParam, StrategyParams};
-use eigen_contracts::StakeRegistry::StakeRegistryCalls::strategyParams;
 use k256::ecdsa::VerifyingKey;
 
 use super::{AvsRegistryContractManager, AvsRegistryContractResult};
@@ -127,9 +124,12 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             .await
             .map_err(AvsError::from)?;
 
+        let mut signature = operator_signature.as_bytes();
+        signature[64] += 27;
+
         let operator_signature_with_salt_and_expiry =
             RegistryCoordinator::SignatureWithSaltAndExpiry {
-                signature: Bytes::copy_from_slice(operator_signature.as_bytes().as_ref()),
+                signature: Bytes::from(signature),
                 salt: operator_to_avs_registration_sig_salt,
                 expiry: operator_to_avs_registration_sig_expiry,
             };
@@ -154,6 +154,16 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             pubkey_reg_params,
             operator_signature_with_salt_and_expiry,
         );
+
+        let quorum_count = registry_coordinator.quorumCount().call().await.unwrap();
+        log::info!("Quorum count: {:?}", quorum_count._0);
+
+        let bitmap = registry_coordinator
+            .getCurrentQuorumBitmap(operator_id_from_key_pair(bls_key_pair))
+            .call()
+            .await
+            .unwrap();
+        log::info!("Bitmap: {:?}", bitmap._0);
 
         let _call = builder.call().await.unwrap();
 

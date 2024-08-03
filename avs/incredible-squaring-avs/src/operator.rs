@@ -59,7 +59,7 @@ pub enum OperatorError {
     #[error("Cannot get operator id: {0}")]
     OperatorIdError(String),
     #[error(
-    "Operator is not registered. Register using the operator-cli before starting operator."
+        "Operator is not registered. Register using the operator-cli before starting operator."
     )]
     OperatorNotRegistered,
     #[error("Error in metrics server: {0}")]
@@ -209,7 +209,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             &config.bls_private_key_store_path,
             &bls_key_password,
         )
-            .map_err(OperatorError::from)?;
+        .map_err(OperatorError::from)?;
 
         let _chain_id = eth_client_http
             .get_chain_id()
@@ -224,7 +224,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             &config.ecdsa_private_key_store_path,
             &ecdsa_key_password,
         )
-            .unwrap();
+        .unwrap();
         let ecdsa_signing_key = SigningKey::from(&ecdsa_secret_key);
         // TODO: Ecdsa signing key is not used
 
@@ -247,8 +247,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             eth_client_ws.clone(),
             signer.clone(),
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         log::info!("About to build AVS Registry Contract Manager");
         let avs_registry_contract_manager = AvsRegistryContractManager::build(
@@ -261,8 +261,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             eth_client_ws.clone(),
             signer.clone(),
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         log::info!("About to build aggregator service");
         let aggregator_service = Aggregator::build(
@@ -270,8 +270,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             operator_info_service,
             config.server_ip_port_address.clone(),
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         log::info!("About to build aggregator RPC client");
         let aggregator_rpc_client = AggregatorRpcClient::new(config.server_ip_port_address.clone());
@@ -284,8 +284,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             eth_client_ws.clone(),
             signer.clone(),
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         log::info!("About to get operator id and address");
         let operator_addr = Address::from_str(&config.operator_address).unwrap();
@@ -301,6 +301,14 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             bls_keypair.clone().get_pub_key_g2(),
         );
 
+        let answer = avs_registry_contract_manager
+            .is_operator_registered(alloy_primitives::address!(
+                "70997970C51812dc3A010C7d01b50e0d17dc79C8"
+            ))
+            .await
+            .unwrap();
+        log::info!("Is operator registered: {:?}", answer);
+
         let mut salt = [0u8; 32];
         rand::thread_rng().fill(&mut salt);
         let sig_salt = FixedBytes::from_slice(&salt);
@@ -313,7 +321,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         // );
         let current_block_number = eth_client_http.get_block_number().await.unwrap();
         let expiry: U256 = U256::from(current_block_number + 20);
-        let quorum_nums = Bytes::from(vec![0, 1]);
+        let quorum_nums = Bytes::from(vec![0]);
         let register_result = avs_registry_contract_manager
             .register_operator_in_quorum_with_avs_registry_coordinator(
                 &ecdsa_signing_key,
@@ -321,7 +329,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                 expiry,
                 &bls_keypair,
                 quorum_nums,
-                "ws://127.0.0.1:33125".to_string(),
+                // "ws://127.0.0.1:33125".to_string(),
+                config.eth_rpc_url.clone(),
             )
             .await;
         log::info!("Register result: {:?}", register_result);
@@ -357,9 +366,9 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             .avs_registry_contract_manager
             .is_operator_registered(self.operator_addr)
             .await; //?;
-        // if !operator_is_registered {
-        //     return Err(OperatorError::OperatorNotRegistered);
-        // }
+                    // if !operator_is_registered {
+                    //     return Err(OperatorError::OperatorNotRegistered);
+                    // }
         log::info!("Operator registration status: {:?}", operator_is_registered);
 
         if self.config.enable_node_api {
@@ -1025,13 +1034,16 @@ mod tests {
         // println!("chain_id: {:?}", chain_id);
         // println!("chain_name: {:?}", chain_name);
 
+        let account_one = address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+        let account_two = address!("70997970C51812dc3A010C7d01b50e0d17dc79C8");
+
         let contract_addresses = ContractAddresses {
             service_manager: address!("84eA74d481Ee0A5332c457a4d796187F6Ba67fEB"),
             registry_coordinator: address!("a82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9"),
             operator_state_retriever: address!("95401dc811bb5740090279Ba06cfA8fcF6113778"),
             delegation_manager: address!("Cf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"),
             avs_directory: address!("5FC8d32690cc91D4c39d9d3abcBD16989F875707"),
-            operator: address!("f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+            operator: account_two,
         };
 
         // let contract_addresses = ContractAddresses {
@@ -1104,10 +1116,64 @@ mod tests {
             operator_info_service,
             signer,
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         operator.start().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_load_issue() {
+        env_logger::init();
+
+        let http_endpoint = "http://127.0.0.1:8545";
+        let ws_endpoint = "ws://127.0.0.1:8545";
+
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .on_http(http_endpoint.parse().unwrap())
+            .root()
+            .clone()
+            .boxed();
+
+        // let ws_provider = ProviderBuilder::new()
+        //     .with_recommended_fillers()
+        //     .on_ws(WsConnect::new(ws_endpoint))
+        //     .await
+        //     .unwrap()
+        //     .root()
+        //     .clone()
+        //     .boxed();
+
+        let registry_coordinator_addr = address!("a82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9");
+        let registry_coordinator_implementation_addr =
+            address!("9d4454B023096f34B160D6B654540c56A1F81688");
+
+        // let registry_coordinator = RegistryCoordinator::new(registry_coordinator_addr, provider.clone());
+        let registry_coordinator_code = provider
+            .get_code_at(registry_coordinator_addr)
+            .await
+            .unwrap();
+        // println!("Code at Registry Coordinator Address: {:?}", registry_coordinator_code);
+        let registry_coordinator =
+            RegistryCoordinator::new(registry_coordinator_addr, provider.clone());
+        let response_one = registry_coordinator.owner().call().await.unwrap();
+        println!("Owner from RC: {:?}", response_one._0);
+
+        // let registry_coordinator = RegistryCoordinator::new(registry_coordinator_implementation_addr, provider.clone());
+        let registry_coordinator_implementation_code = provider
+            .get_code_at(registry_coordinator_implementation_addr)
+            .await
+            .unwrap();
+        // println!("Code at Registry Coordinator Implementation Address: {:?}", registry_coordinator_implementation_code);
+        let registry_coordinator_implementation =
+            RegistryCoordinator::new(registry_coordinator_implementation_addr, provider.clone());
+        let response_two = registry_coordinator_implementation
+            .owner()
+            .call()
+            .await
+            .unwrap();
+        println!("Owner from RC Implementation: {:?}", response_two._0);
     }
 
     #[tokio::test]
@@ -1145,9 +1211,16 @@ mod tests {
         assert_eq!(bls_pair.pub_key, bls_keys.pub_key);
 
         //---------------- ECDSA ----------------
+        // First Account
+        // let hex_key =
+        //     hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+        //         .unwrap();
+
+        // Second Account
         let hex_key =
-            hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+            hex::decode("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d")
                 .unwrap();
+
         let secret_key = SecretKey::from_slice(&hex_key).unwrap();
         let signing_key = SigningKey::from(secret_key.clone());
         let public_key = secret_key.public_key();

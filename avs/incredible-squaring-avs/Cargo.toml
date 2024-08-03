@@ -1,5 +1,5 @@
 [package]
-name = "incredible-squaring-avs"
+name = "eigen-gadget"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true

@@ -139,7 +139,7 @@ sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     EigenStrategy,
-    "out/EigenStrategy.sol/EigenStrategy.json"
+    "lib/eigenlayer-contracts/out/EigenStrategy.sol/EigenStrategy.json"
 );
 
 sol!(

@@ -4159,6 +4159,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "eigen-gadget"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "alloy-contract",
+ "alloy-primitives",
+ "alloy-provider 0.2.1",
+ "alloy-pubsub",
+ "alloy-rpc-client 0.2.1",
+ "alloy-rpc-types",
+ "alloy-rpc-types-eth 0.2.1",
+ "alloy-signer 0.2.1",
+ "alloy-signer-local",
+ "alloy-sol-types",
+ "alloy-transport 0.2.1",
+ "alloy-transport-http 0.2.1",
+ "alloy-transport-ws",
+ "anvil",
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff 0.4.2",
+ "async-trait",
+ "aws-kms",
+ "aws-sdk-kms",
+ "eigen-contracts",
+ "eigen-utils",
+ "env_logger 0.11.5",
+ "ethabi",
+ "foundry-common",
+ "futures",
+ "gadget-common",
+ "getrandom",
+ "hex",
+ "http-body-util",
+ "hyper 1.4.1",
+ "k256",
+ "lazy_static",
+ "log",
+ "prometheus",
+ "rand",
+ "reqwest 0.12.5",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "eigen-utils"
 version = "0.1.0"
 dependencies = [
@@ -6658,54 +6707,6 @@ checksum = "7cab85a7ed0bd5f0e76d93846e0147172bed2e2d3f859bcc33a8d9699cad1a75"
 dependencies = [
  "proc-macro2",
  "quote",
-]
-
-[[package]]
-name = "incredible-squaring-avs"
-version = "0.1.0"
-dependencies = [
- "alloy",
- "alloy-contract",
- "alloy-primitives",
- "alloy-provider 0.2.1",
- "alloy-pubsub",
- "alloy-rpc-client 0.2.1",
- "alloy-rpc-types",
- "alloy-rpc-types-eth 0.2.1",
- "alloy-signer 0.2.1",
- "alloy-signer-local",
- "alloy-sol-types",
- "alloy-transport 0.2.1",
- "alloy-transport-http 0.2.1",
- "alloy-transport-ws",
- "anvil",
- "ark-bn254",
- "ark-ec",
- "ark-ff 0.4.2",
- "async-trait",
- "aws-kms",
- "aws-sdk-kms",
- "eigen-contracts",
- "eigen-utils",
- "env_logger 0.11.5",
- "foundry-common",
- "futures",
- "gadget-common",
- "getrandom",
- "hex",
- "http-body-util",
- "hyper 1.4.1",
- "k256",
- "lazy_static",
- "log",
- "prometheus",
- "rand",
- "reqwest 0.12.5",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "url",
 ]
 
 [[package]]

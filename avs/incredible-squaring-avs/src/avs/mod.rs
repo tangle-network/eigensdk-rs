@@ -86,7 +86,10 @@ impl<T: Config> IncredibleSquaringContractManager<T> {
         let registry_coordinator =
             RegistryCoordinator::new(registry_coordinator_addr, eth_client_http.clone());
 
-        let result = eth_client_http.get_code_at(registry_coordinator_addr).await.unwrap();
+        let result = eth_client_http
+            .get_code_at(registry_coordinator_addr)
+            .await
+            .unwrap();
         log::info!("Registry Coordinator Code: {:?}", result);
 
         log::info!("Built RegistryCoordinator");
