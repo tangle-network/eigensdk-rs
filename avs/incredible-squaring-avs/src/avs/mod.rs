@@ -21,7 +21,7 @@ sol!(
     #[derive(Debug)]
     #[sol(rpc)]
     IncredibleSquaringTaskManager,
-    "contracts/out/IncredibleSquaringTaskManager.sol/IncredibleSquaringTaskManager.json"
+    "./contracts/out/IncredibleSquaringTaskManager.sol/IncredibleSquaringTaskManager.json"
 );
 
 sol!(
@@ -29,7 +29,7 @@ sol!(
     #[derive(Debug)]
     #[sol(rpc)]
     IncredibleSquaringServiceManager,
-    "contracts/out/IncredibleSquaringServiceManager.sol/IncredibleSquaringServiceManager.json"
+    "./contracts/out/IncredibleSquaringServiceManager.sol/IncredibleSquaringServiceManager.json"
 );
 
 sol!(
@@ -37,7 +37,7 @@ sol!(
     #[derive(Debug)]
     #[sol(rpc)]
     Erc20Mock,
-    "contracts/out/ERC20Mock.sol/ERC20Mock.json"
+    "./contracts/out/ERC20Mock.sol/ERC20Mock.json"
 );
 
 #[derive(Debug, Clone)]
