@@ -186,21 +186,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         signer: T::S,
     ) -> Result<Self, OperatorError> {
         let _metrics_reg = Registry::new();
-        // let avs_and_eigen_metrics = Metrics::new(AVS_NAME, eigen_metrics, &metrics_reg);
 
         let node_api = NodeApi::new(AVS_NAME, SEM_VER, &config.node_api_ip_port_address);
-
-        // let eth_rpc_client = ProviderBuilder::default()
-        //     .with_recommended_fillers()
-        //     .on_http(
-        //         Url::parse(&config.eth_rpc_url)
-        //             .map_err(|e| OperatorError::HttpEthClientError(e.to_string()))?,
-        //     );
-        // let eth_ws_client = ProviderBuilder::default()
-        //     .with_recommended_fillers()
-        //     .on_ws(WsConnect::new(&config.eth_ws_url))
-        //     .await
-        //     .map_err(|e| AvsError::from(e))?;
 
         log::info!("About to read BLS key");
         let bls_key_password =
@@ -312,13 +299,6 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         let mut salt = [0u8; 32];
         rand::thread_rng().fill(&mut salt);
         let sig_salt = FixedBytes::from_slice(&salt);
-        // let expiry = aliases::U256::from(
-        //     SystemTime::now()
-        //         .duration_since(UNIX_EPOCH)
-        //         .unwrap()
-        //         .as_secs()
-        //         + 3600,
-        // );
         let current_block_number = eth_client_http.get_block_number().await.unwrap();
         let expiry: U256 = U256::from(current_block_number + 20);
         let quorum_nums = Bytes::from(vec![0]);
@@ -329,7 +309,6 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                 expiry,
                 &bls_keypair,
                 quorum_nums,
-                // "ws://127.0.0.1:33125".to_string(),
                 config.eth_rpc_url.clone(),
             )
             .await;
@@ -1022,7 +1001,11 @@ mod tests {
     #[tokio::test]
     async fn test_anvil() {
         env_logger::init();
+
+        // // Runs new Anvil Testnet - used for deploying programmatically in rust
         // let contract_addresses = run_anvil_testnet().await;
+
+        // // Runs saved Anvil Testnet - loads from saved chain state JSON file
         // let chain = eigen_utils::test_utils::local_chain::LocalEvmChain::new_with_chain_state(
         //     31337,
         //     String::from("eigen-testnet"),
@@ -1046,6 +1029,7 @@ mod tests {
             operator: account_two,
         };
 
+        // Implementation version of addresses
         // let contract_addresses = ContractAddresses {
         //     service_manager: address!("84eA74d481Ee0A5332c457a4d796187F6Ba67fEB"),
         //     registry_coordinator: address!("9d4454B023096f34B160D6B654540c56A1F81688"),
@@ -1079,8 +1063,13 @@ mod tests {
 
         let operator_info_service = OperatorInfoService {};
 
+        let hex_key =
+            hex::decode("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d")
+                .unwrap();
+        let secret_key = SecretKey::from_slice(&hex_key).unwrap();
+        let signing_key = SigningKey::from(secret_key.clone());
         let signer = EigenGadgetSigner {
-            signer: PrivateKeySigner::random(),
+            signer: PrivateKeySigner::from_signing_key(signing_key),
         };
 
         println!("Creating HTTP Provider...");
@@ -1120,60 +1109,6 @@ mod tests {
         .unwrap();
 
         operator.start().await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_load_issue() {
-        env_logger::init();
-
-        let http_endpoint = "http://127.0.0.1:8545";
-        let ws_endpoint = "ws://127.0.0.1:8545";
-
-        let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .on_http(http_endpoint.parse().unwrap())
-            .root()
-            .clone()
-            .boxed();
-
-        // let ws_provider = ProviderBuilder::new()
-        //     .with_recommended_fillers()
-        //     .on_ws(WsConnect::new(ws_endpoint))
-        //     .await
-        //     .unwrap()
-        //     .root()
-        //     .clone()
-        //     .boxed();
-
-        let registry_coordinator_addr = address!("a82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9");
-        let registry_coordinator_implementation_addr =
-            address!("9d4454B023096f34B160D6B654540c56A1F81688");
-
-        // let registry_coordinator = RegistryCoordinator::new(registry_coordinator_addr, provider.clone());
-        let registry_coordinator_code = provider
-            .get_code_at(registry_coordinator_addr)
-            .await
-            .unwrap();
-        // println!("Code at Registry Coordinator Address: {:?}", registry_coordinator_code);
-        let registry_coordinator =
-            RegistryCoordinator::new(registry_coordinator_addr, provider.clone());
-        let response_one = registry_coordinator.owner().call().await.unwrap();
-        println!("Owner from RC: {:?}", response_one._0);
-
-        // let registry_coordinator = RegistryCoordinator::new(registry_coordinator_implementation_addr, provider.clone());
-        let registry_coordinator_implementation_code = provider
-            .get_code_at(registry_coordinator_implementation_addr)
-            .await
-            .unwrap();
-        // println!("Code at Registry Coordinator Implementation Address: {:?}", registry_coordinator_implementation_code);
-        let registry_coordinator_implementation =
-            RegistryCoordinator::new(registry_coordinator_implementation_addr, provider.clone());
-        let response_two = registry_coordinator_implementation
-            .owner()
-            .call()
-            .await
-            .unwrap();
-        println!("Owner from RC Implementation: {:?}", response_two._0);
     }
 
     #[tokio::test]

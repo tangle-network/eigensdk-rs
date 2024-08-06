@@ -2,11 +2,8 @@ use crate::types::*;
 use crate::Config;
 
 use alloy_primitives::{Address, U256};
-
 use alloy_rpc_types::TransactionReceipt;
-
 use async_trait::async_trait;
-
 use eigen_contracts::DelegationManager;
 use eigen_contracts::StrategyManager;
 

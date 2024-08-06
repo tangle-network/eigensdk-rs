@@ -6,7 +6,6 @@ use alloy_primitives::{Address, Bytes, U256};
 use alloy_provider::Provider;
 use alloy_rpc_types::{Log, TransactionReceipt};
 use alloy_sol_types::sol;
-
 use eigen_contracts::RegistryCoordinator;
 use eigen_utils::{
     crypto::bls::{G1Point, Signature},
@@ -82,28 +81,18 @@ impl<T: Config> IncredibleSquaringContractManager<T> {
         eth_client_ws: T::PW,
         signer: T::S,
     ) -> Result<Self, AvsError> {
-        log::info!("Building IncredibleSquaringContractManager");
         let registry_coordinator =
             RegistryCoordinator::new(registry_coordinator_addr, eth_client_http.clone());
 
-        let result = eth_client_http
-            .get_code_at(registry_coordinator_addr)
-            .await
-            .unwrap();
-        log::info!("Registry Coordinator Code: {:?}", result);
-
-        log::info!("Built RegistryCoordinator");
         let service_manager_addr = registry_coordinator.serviceManager().call().await?._0;
-        log::info!("Found Service Manager: {:?}", service_manager_addr);
         let service_manager =
             IncredibleSquaringServiceManager::new(service_manager_addr, eth_client_http.clone());
-        log::info!("Built Service Manager");
+
         let task_manager_addr = service_manager
             .incredibleSquaringTaskManager()
             .call()
             .await?
             ._0;
-        log::info!("Found Task Manager: {:?}", task_manager_addr);
 
         Ok(Self {
             task_manager_addr,
