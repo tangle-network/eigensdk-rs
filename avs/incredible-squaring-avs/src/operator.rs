@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use alloy_contract::private::Ethereum;
-use alloy_primitives::{Address, Bytes, ChainId, FixedBytes, Signature, B256, U256};
+use alloy_primitives::{Address, Bytes, ChainId, FixedBytes, Signature, B256, U256, address};
 use alloy_provider::{Provider, RootProvider};
 use alloy_rpc_types::Log;
 use alloy_signer_local::PrivateKeySigner;
@@ -17,7 +17,7 @@ use eigen_utils::services::operator_info::OperatorInfoServiceTrait;
 use eigen_utils::types::{AvsError, OperatorInfo};
 use eigen_utils::Config;
 use gadget_common::subxt_signer::bip39::rand;
-use k256::ecdsa::SigningKey;
+use k256::ecdsa::{SigningKey, VerifyingKey};
 use log::error;
 use prometheus::Registry;
 use rand::Rng;
@@ -25,7 +25,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::str::FromStr;
 use thiserror::Error;
-
+use eigen_utils::crypto::ecdsa::ToAddress;
 use crate::aggregator::Aggregator;
 use crate::avs::subscriber::IncredibleSquaringSubscriber;
 use crate::avs::{
@@ -186,6 +186,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         signer: T::S,
     ) -> Result<Self, OperatorError> {
         let _metrics_reg = Registry::new();
+        let operator_address = Address::from_str(&config.operator_address).unwrap();
 
         let node_api = NodeApi::new(AVS_NAME, SEM_VER, &config.node_api_ip_port_address);
 
@@ -213,7 +214,9 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         )
         .unwrap();
         let ecdsa_signing_key = SigningKey::from(&ecdsa_secret_key);
-        // TODO: Ecdsa signing key is not used
+        let verifying_key = VerifyingKey::from(&ecdsa_signing_key);
+        let ecdsa_address = verifying_key.to_address();
+        assert_eq!(operator_address, ecdsa_address, "Operator Address does not match the address found from the read ECDSA key");
 
         let setup_config = SetupConfig::<T> {
             registry_coordinator_addr: Address::from_str(&config.avs_registry_coordinator_addr)
@@ -274,47 +277,44 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         .await
         .unwrap();
 
-        log::info!("About to get operator id and address");
-        let operator_addr = Address::from_str(&config.operator_address).unwrap();
+        // let mut salt = [0u8; 32];
+        // rand::thread_rng().fill(&mut salt);
+        // let sig_salt = FixedBytes::from_slice(&salt);
+        // let current_block_number = eth_client_http.get_block_number().await.unwrap();
+        // let expiry: U256 = U256::from(current_block_number + 20);
+        // let quorum_nums = Bytes::from(vec![0]);
+        // let register_result = avs_registry_contract_manager
+        //     .register_operator_in_quorum_with_avs_registry_coordinator(
+        //         &ecdsa_signing_key,
+        //         sig_salt,
+        //         expiry,
+        //         &bls_keypair,
+        //         quorum_nums,
+        //         config.eth_rpc_url.clone(),
+        //     )
+        //     .await;
+        let quorum_nums = Bytes::from(vec![0]);
+        let register_result = avs_registry_contract_manager.register_operator(&ecdsa_signing_key, &bls_keypair, quorum_nums, config.eth_rpc_url.clone()).await;
+        log::info!("Register result: {:?}", register_result);
+
+        let answer = avs_registry_contract_manager
+            .is_operator_registered(operator_address)
+            .await
+            .unwrap();
+        log::info!("Is operator registered: {:?}", answer);
+
         let operator_id = avs_registry_contract_manager
-            .get_operator_id(operator_addr)
+            .get_operator_id(operator_address)
             .await?;
 
         log::info!(
             "Operator info: operatorId={}, operatorAddr={}, operatorG1Pubkey={:?}, operatorG2Pubkey={:?}",
             hex::encode(operator_id),
-            config.operator_address,
+            operator_address,
             bls_keypair.clone().get_pub_key_g1(),
             bls_keypair.clone().get_pub_key_g2(),
         );
 
-        let answer = avs_registry_contract_manager
-            .is_operator_registered(alloy_primitives::address!(
-                "70997970C51812dc3A010C7d01b50e0d17dc79C8"
-            ))
-            .await
-            .unwrap();
-        log::info!("Is operator registered: {:?}", answer);
-
-        let mut salt = [0u8; 32];
-        rand::thread_rng().fill(&mut salt);
-        let sig_salt = FixedBytes::from_slice(&salt);
-        let current_block_number = eth_client_http.get_block_number().await.unwrap();
-        let expiry: U256 = U256::from(current_block_number + 20);
-        let quorum_nums = Bytes::from(vec![0]);
-        let register_result = avs_registry_contract_manager
-            .register_operator_in_quorum_with_avs_registry_coordinator(
-                &ecdsa_signing_key,
-                sig_salt,
-                expiry,
-                &bls_keypair,
-                quorum_nums,
-                config.eth_rpc_url.clone(),
-            )
-            .await;
-        log::info!("Register result: {:?}", register_result);
-
-        log::info!("About to create operator");
         let operator = Operator {
             config: config.clone(),
             node_api,
@@ -323,7 +323,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             eigenlayer_contract_manager,
             bls_keypair,
             operator_id,
-            operator_addr,
+            operator_addr: operator_address,
             aggregator_server_ip_port_addr: config.server_ip_port_address.clone(),
             aggregator_server: aggregator_service,
             aggregator_rpc_client,

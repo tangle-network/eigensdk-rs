@@ -190,3 +190,10 @@ sol!(
     TransparentUpgradeableProxy,
     "./lib/eigenlayer-middleware/out/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json"
 );
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    EIP1271SignatureUtils,
+    "./out/EIP1271SignatureUtils.sol/EIP1271SignatureUtils.json"
+);
