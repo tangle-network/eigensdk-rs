@@ -1,6 +1,5 @@
 #![allow(async_fn_in_trait)]
 
-use std::str::FromStr;
 use super::{AvsRegistryContractManager, AvsRegistryContractResult};
 use crate::crypto::bls::{G1Point, KeyPair};
 use crate::crypto::ecdsa::ToAddress;
@@ -11,13 +10,14 @@ use alloy_provider::Provider;
 use alloy_rpc_types::TransactionReceipt;
 use alloy_signer::k256::ecdsa;
 use alloy_signer::{Signer as alloySigner, SignerSync};
+use eigen_contracts::EIP1271SignatureUtils::EIP1271SignatureUtilsInstance;
 use eigen_contracts::IBlsApkRegistry::PubkeyRegistrationParams;
-use eigen_contracts::{EIP1271SignatureUtils, RegistryCoordinator};
 use eigen_contracts::RegistryCoordinator::SignatureWithSaltAndExpiry;
+use eigen_contracts::{EIP1271SignatureUtils, RegistryCoordinator};
 use k256::ecdsa::signature::Signer;
 use k256::ecdsa::{SigningKey, VerifyingKey};
 use rand::Rng;
-use eigen_contracts::EIP1271SignatureUtils::EIP1271SignatureUtilsInstance;
+use std::str::FromStr;
 
 pub trait AvsRegistryChainWriterTrait {
     async fn register_operator(
@@ -64,7 +64,8 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
     ) -> AvsRegistryContractResult<TransactionReceipt> {
         let operator_addr = operator_ecdsa_private_key.verifying_key().to_address();
         log::info!("Operator address: {:?}", operator_addr);
-        let registry_coordinator = RegistryCoordinator::new(self.registry_coordinator_addr, self.eth_client_http.clone());
+        let registry_coordinator =
+            RegistryCoordinator::new(self.registry_coordinator_addr, self.eth_client_http.clone());
 
         // params to register bls pubkey with bls apk registry
         let g1_hashed_msg_to_sign = registry_coordinator
@@ -102,7 +103,8 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         let mut rng = rand::thread_rng();
         let mut operator_to_avs_registration_sig_salt = [0u8; 32];
         rng.fill(&mut operator_to_avs_registration_sig_salt);
-        let operator_to_avs_registration_sig_salt = FixedBytes::from(operator_to_avs_registration_sig_salt);
+        let operator_to_avs_registration_sig_salt =
+            FixedBytes::from(operator_to_avs_registration_sig_salt);
 
         let cur_block_num = self.eth_client_http.get_block_number().await?;
         let cur_block = self
@@ -111,7 +113,8 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             .await?
             .unwrap();
         let sig_valid_for_seconds = 60 * 60; // 1 hour
-        let operator_to_avs_registration_sig_expiry = U256::from(cur_block.header.timestamp + sig_valid_for_seconds);
+        let operator_to_avs_registration_sig_expiry =
+            U256::from(cur_block.header.timestamp + sig_valid_for_seconds);
 
         let msg_to_sign = self
             .el_contract_manager
@@ -123,25 +126,28 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             )
             .await?;
 
-        // let operator_signature = operator_ecdsa_private_key.sign(&msg_to_sign);
-        // let mut operator_signature_bytes = operator_signature.as_ref().to_vec();
-
-        let operator_signature = self.signer.sign_hash(&msg_to_sign).await.map_err(AvsError::from)?;
+        let operator_signature = self
+            .signer
+            .sign_hash(&msg_to_sign)
+            .await
+            .map_err(AvsError::from)?;
         let operator_signature_bytes = operator_signature.as_bytes();
-        log::info!("Operator Hash signature as bytes: {:?}", operator_signature_bytes);
+        log::info!(
+            "Operator Hash signature as bytes: {:?}",
+            operator_signature_bytes
+        );
         let operator_signature_bytes = Bytes::from(operator_signature_bytes);
-        log::info!("Operator Hash signature in Alloy Bytes: {:?}", operator_signature_bytes);
+        log::info!(
+            "Operator Hash signature in Alloy Bytes: {:?}",
+            operator_signature_bytes
+        );
 
-        let wallet = alloy_signer_local::PrivateKeySigner::from(operator_ecdsa_private_key.clone());
-        let operator_signature = wallet.sign_hash_sync(&msg_to_sign).unwrap();
-        let operator_signature_bytes = operator_signature.as_bytes();
-        log::info!("Operator Wallet Hash signature as bytes: {:?}", operator_signature_bytes);
-        let operator_signature_bytes = Bytes::from(operator_signature_bytes);
-        log::info!("Operator Wallet Hash signature in Alloy Bytes: {:?}", operator_signature_bytes);
-
-        EIP1271SignatureUtils::deploy(self.eth_client_http.clone()).await.unwrap();
-
-        // operator_signature_bytes[64] += 27; // Convert to Ethereum's 27/28 format
+        // let wallet = alloy_signer_local::PrivateKeySigner::from(operator_ecdsa_private_key.clone());
+        // let operator_signature = wallet.sign_hash_sync(&msg_to_sign).unwrap();
+        // let operator_signature_bytes = operator_signature.as_bytes();
+        // log::info!("Operator Wallet Hash signature as bytes: {:?}", operator_signature_bytes);
+        // let operator_signature_bytes = Bytes::from(operator_signature_bytes);
+        // log::info!("Operator Wallet Hash signature in Alloy Bytes: {:?}", operator_signature_bytes);
 
         let operator_signature_with_salt_and_expiry = SignatureWithSaltAndExpiry {
             signature: operator_signature_bytes,
