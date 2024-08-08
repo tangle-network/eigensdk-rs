@@ -73,7 +73,7 @@ let operator = Operator::new_from_config(
             ws_provider,
             operator_info_service,
             signer,
-        )
+)
 .await?;
 ```
 2. With the operator, simply run the start function:
