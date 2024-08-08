@@ -70,7 +70,7 @@ To programmatically start an AVS operator:
 let operator = Operator::new_from_config(
 	config,
 	http_provider,
-            ws_provider,
+	ws_provider,
             operator_info_service,
 	signer,
 )
