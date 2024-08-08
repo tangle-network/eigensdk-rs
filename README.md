@@ -1,6 +1,6 @@
 # EigenSDK-RS
 
-[![Validate PR](https://github.com/webb-tools/gadget/actions/workflows/validate_pr.yml/badge.svg)](https://github.com/webb-tools/gadget/actions/workflows/validate_pr.yml)
+[![Validate PR](https://github.com/webb-tools/eigensdk-rs/actions/workflows/validate_pr.yml/badge.svg)](https://github.com/webb-tools/eigensdk-rs/actions/workflows/validate_pr.yml)
 [![Rust Version](https://img.shields.io/badge/rust-1.74.0%2B-blue.svg)](https://www.rust-lang.org)
 ---
 
@@ -16,8 +16,8 @@ It should be noted that this SDK is still being actively developed.
 ## Table of Contents
 - [**Features**](#features)
 - [**Getting** Started](#getting-started)
-  - [**Installation**](#installation)
-  - [**Running an AVS**](#running-an-avs)
+    - [**Installation**](#installation)
+    - [**Running an AVS**](#running-an-avs)
 - [**Testing**](#testing)
     - [**Running the Included Tests**](#running-the-included-tests)
     - [**Testing Custom Implementations**](#testing-custom-implementations)
@@ -49,7 +49,7 @@ Clone the repository:
 git clone https://github.com/webb-tools/eigensdk-rs/
 cd eigensdk-rs
 ```
-   
+
 Build the project:
 
 ```bash
@@ -68,13 +68,13 @@ To programmatically start an AVS operator:
 1. Create a new operator, supplying the necessary inputs (dependent upon the AVS you are running). The following is a general example that a real implementation would closely follow:
 ```rust
 let operator = Operator::new_from_config(
-            config,
-            http_provider,
-            ws_provider,
-            operator_info_service,
-            signer,
-        )
-        .await?;
+	config,
+	http_provider,
+	ws_provider,
+	operator_info_service,
+	signer,
+)
+.await?;
 ```
 2. With the operator, simply run the start function:
 ```rust
