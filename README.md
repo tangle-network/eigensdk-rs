@@ -68,7 +68,7 @@ To programmatically start an AVS operator:
 1. Create a new operator, supplying the necessary inputs (dependent upon the AVS you are running). The following is a general example that a real implementation would closely follow:
 ```rust
 let operator = Operator::new_from_config(
-            config,
+	config,
             http_provider,
             ws_provider,
             operator_info_service,
