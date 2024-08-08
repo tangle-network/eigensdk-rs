@@ -423,7 +423,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy_primitives::{address, Address};
+    use alloy_primitives::{address, Address, Uint};
     use alloy_provider::Provider;
     use alloy_provider::ProviderBuilder;
     use alloy_signer_local::PrivateKeySigner;
@@ -445,6 +445,7 @@ mod tests {
 
     use crate::avs;
     use alloy::signers::Signer;
+    use alloy_primitives::Keccak256;
     use alloy_provider::network::{TransactionBuilder, TxSigner};
     use alloy_rpc_types_eth::BlockId;
     use alloy_sol_types::abi::Encoder;
@@ -455,8 +456,12 @@ mod tests {
     use avs::IncredibleSquaringServiceManager;
     use eigen_contracts::RegistryCoordinator::{OperatorSetParam, StrategyParams};
     use eigen_contracts::*;
-    use ethabi::ethereum_types::H160;
-    use ethabi::{encode, Token};
+    // use ethabi::ethereum_types::H160;
+    // use ethabi::{encode, Token};
+    use alloy_sol_types::abi::{self, token::*};
+    use alloy_sol_types::Word;
+    use eigen_utils::encode_params;
+    use eigen_utils::test_utils::abi::encode_with_selector;
     use gadget_common::subxt_signer::bip39::rand_core::OsRng;
     use url::Url;
 
@@ -513,39 +518,40 @@ mod tests {
         // let base_strategy_addr = address!("322813Fd9A801c5507c9de605d63CEA4f2CE6c44");
 
         // Deploy Eigenlayer Contracts
-        let strategy_manager_addr = address!("Dc64a140Aa3E981100a9becA4E685f962f0cF6C9");
-        let delegation_manager_addr = address!("Cf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9");
-        let avs_directory_addr = address!("5FC8d32690cc91D4c39d9d3abcBD16989F875707");
-        let proxy_admin_addr = address!("5FbDB2315678afecb367f032d93F642f64180aa3");
-        let pauser_registry_addr = address!("e7f1725E7734CE288F8367e1Bb143E90bb3F0512");
-        let base_strategy_addr = address!("322813Fd9A801c5507c9de605d63CEA4f2CE6c44");
+        // let strategy_manager_addr = address!("Dc64a140Aa3E981100a9becA4E685f962f0cF6C9");
+        // let delegation_manager_addr = address!("Cf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9");
+        // let avs_directory_addr = address!("5FC8d32690cc91D4c39d9d3abcBD16989F875707");
+        // let proxy_admin_addr = address!("5FbDB2315678afecb367f032d93F642f64180aa3");
+        // let pauser_registry_addr = address!("e7f1725E7734CE288F8367e1Bb143E90bb3F0512");
+        // let base_strategy_addr = address!("322813Fd9A801c5507c9de605d63CEA4f2CE6c44");
 
-        let istrategy_manager = IStrategyManager::new(strategy_manager_addr, provider.clone());
-        let idelegation_manager =
-            IDelegationManager::new(delegation_manager_addr, provider.clone());
-        let iavs_directory = IAVSDirectory::new(avs_directory_addr, provider.clone());
-        let proxy_admin = ProxyAdmin::new(proxy_admin_addr, provider.clone());
-        let pauser_registry = PauserRegistry::new(pauser_registry_addr, provider.clone());
-        let base_strategy = StrategyBaseTVLLimits::new(base_strategy_addr, provider.clone());
-        // let istrategy_manager = IStrategyManager::deploy(provider.clone()).await.unwrap();
-        // let &strategy_manager_addr = istrategy_manager.address();
-        //
-        // let idelegation_manager = IDelegationManager::deploy(provider.clone()).await.unwrap();
-        // let &delegation_manager_addr = idelegation_manager.address();
-        //
-        // let iavs_directory = IAVSDirectory::deploy(provider.clone()).await.unwrap();
-        // let &avs_directory_addr = iavs_directory.address();
-        //
-        // let proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
-        // let &proxy_admin_addr = proxy_admin.address();
-        //
-        // let pauser_registry = PauserRegistry::deploy(provider.clone()).await.unwrap();
-        // let &pauser_registry_addr = pauser_registry.address();
-        //
-        // let base_strategy = StrategyBaseTVLLimits::deploy(provider.clone(), Default::default())
-        //     .await
-        //     .unwrap();
-        // let &base_strategy_addr = base_strategy.address();
+        // let istrategy_manager = IStrategyManager::new(strategy_manager_addr, provider.clone());
+        // let idelegation_manager =
+        //     IDelegationManager::new(delegation_manager_addr, provider.clone());
+        // let iavs_directory = IAVSDirectory::new(avs_directory_addr, provider.clone());
+        // let proxy_admin = ProxyAdmin::new(proxy_admin_addr, provider.clone());
+        // let pauser_registry = PauserRegistry::new(pauser_registry_addr, provider.clone());
+        // let base_strategy = StrategyBaseTVLLimits::new(base_strategy_addr, provider.clone());
+
+        let istrategy_manager = IStrategyManager::deploy(provider.clone()).await.unwrap();
+        let &strategy_manager_addr = istrategy_manager.address();
+
+        let idelegation_manager = IDelegationManager::deploy(provider.clone()).await.unwrap();
+        let &delegation_manager_addr = idelegation_manager.address();
+
+        let iavs_directory = IAVSDirectory::deploy(provider.clone()).await.unwrap();
+        let &avs_directory_addr = iavs_directory.address();
+
+        let proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
+        let &proxy_admin_addr = proxy_admin.address();
+
+        let pauser_registry = PauserRegistry::deploy(provider.clone()).await.unwrap();
+        let &pauser_registry_addr = pauser_registry.address();
+
+        let base_strategy = StrategyBaseTVLLimits::deploy(provider.clone(), Default::default())
+            .await
+            .unwrap();
+        let &base_strategy_addr = base_strategy.address();
 
         let erc20_mock = ERC20Mock::deploy(provider.clone()).await.unwrap();
         let &erc20_mock_addr = erc20_mock.address();
@@ -553,18 +559,55 @@ mod tests {
         let ierc20 = IERC20::new(erc20_mock_addr, provider.clone());
         let &ierc20_addr = ierc20.address();
 
-        let tokens = vec![
-            Token::Uint(1.into()),
-            Token::Uint(100.into()),
-            Token::Address(H160::from_slice(ierc20_addr.as_slice())),
-            Token::Address(H160::from_slice(pauser_registry_addr.as_slice())),
-        ];
-        let encoded_data = encode(&tokens);
+        // Function with signature initialize(uint256,uint256,address,address) and selector 0x019e2729.
+        let function_signature = "initialize(uint256,uint256,address,address)";
+        // let params = vec![
+        //     1.tokenize(),
+        //     100.tokenize(),
+        //     ierc20_addr.tokenize(),
+        //     pauser_registry_addr.tokenize(),
+        //     // WordToken(Word::from(1)),
+        //     // WordToken(Word::from(100)),
+        //     // WordToken(Word::from(ierc20_addr.as_slice())),
+        //     // WordToken(Word::from(pauser_registry_addr.as_slice())),
+        // ];
+        // let encoded_data = encode_with_selector(function_signature, params);
+        // let encoded_data = encode_params!(function_signature, 1, 100, ierc20_addr, pauser_registry_addr);
+
+        let mut hasher = Keccak256::new();
+        hasher.update(function_signature);
+        let function_selector = &hasher.finalize()[..4];
+        let hex_selector = hex::encode(function_selector);
+        log::info!("Function selector as hex: {:?}", hex_selector);
+        let mut data = Vec::from(function_selector);
+        // let encoded_param = SolValue::abi_encode(&1);
+        // data.extend_from_slice(&encoded_param);
+        // let encoded_param = SolValue::abi_encode(&100);
+        // data.extend_from_slice(&encoded_param);
+        // let encoded_param = SolValue::abi_encode(&ierc20_addr);
+        // data.extend_from_slice(&encoded_param);
+        // let encoded_param = SolValue::abi_encode(&pauser_registry_addr);
+        // data.extend_from_slice(&encoded_param);
+        let token = 1.tokenize();
+        let encoded_param = abi::encode(&token);
+        data.extend(&encoded_param);
+        let token = 100.tokenize();
+        let encoded_param = abi::encode(&token);
+        data.extend(&encoded_param);
+        let token = ierc20_addr.tokenize();
+        let encoded_param = abi::encode(&token);
+        data.extend(&encoded_param);
+        let token = pauser_registry_addr.tokenize();
+        let encoded_param = abi::encode(&token);
+        data.extend(&encoded_param);
+
+        let encoded_data = alloy_primitives::Bytes::from(data);
+
         let strategy_proxy = TransparentUpgradeableProxy::deploy(
             provider.clone(),
             base_strategy_addr,
             proxy_admin_addr,
-            alloy_primitives::Bytes::from(encoded_data),
+            encoded_data,
         )
         .await
         .unwrap();
@@ -579,7 +622,7 @@ mod tests {
         let strategies = vec![erc20_mock_strategy_addr];
 
         let add_strategies = istrategy_manager
-            .addStrategiesToDepositWhitelist(strategies, vec![false])
+            .addStrategiesToDepositWhitelist(strategies.clone(), vec![false])
             .send()
             .await
             .unwrap()
@@ -828,26 +871,20 @@ mod tests {
             }
         }
 
-        // TODO: These tokens need to be changed for the params types, as they are custom types
-        let tokens = vec![
-            Token::Address(H160::from_slice(pausers[0].as_slice())),
-            Token::Address(H160::from_slice(pausers[0].as_slice())),
-            Token::Address(H160::from_slice(pausers[0].as_slice())),
-            Token::Address(H160::from_slice(pausers[1].as_slice())),
-            Token::Uint(0.into()),
-            Token::Array(quorum_operator_set_params),
-            Token::Array(
-                quorums_minimum_stake
-                    .iter()
-                    .map(|i| Token::Uint(i))
-                    .collect(),
-            ),
-            Token::Array(quorums_strategy_params),
-        ];
-        // let encoder = Encoder::new();
-        // alloy_sol_types::abi::encode_params(alloy_sol_types::abi::TokenSeq::encode_sequence())
-        // quorum_operator_set_params.abi_encode_params();
-        let encoded_data = encode(&tokens);
+        // Function with signature initialize(address,address,address,address,uint256,(uint32,uint16,uint16)[],uint96[],(address,uint96)[][]) and selector 0xdd8283f3.
+        let function_signature = "initialize(address,address,address,address,uint256,(uint32,uint16,uint16)[],uint96[],(address,uint96)[][])";
+
+        let encoded_data = encode_params!(
+            function_signature,
+            pausers[0],
+            pausers[0],
+            pausers[0],
+            pausers[1],
+            0,
+            quorum_operator_set_params,
+            quorums_minimum_stake,
+            quorums_strategy_params
+        );
         let registry_coordinator_upgrade = incredible_squaring_proxy_admin
             .upgradeAndCall(
                 registry_coordinator_addr,
@@ -893,13 +930,24 @@ mod tests {
             incredible_squaring_service_manager_upgrade
         );
 
-        let tokens = vec![
-            Token::Address(H160::from_slice(pauser_registry_addr.as_slice())),
-            Token::Address(H160::from_slice(pausers[0].as_slice())),
-            Token::Address(H160::from_slice(AGGREGATOR_ADDR.as_slice())),
-            Token::Address(H160::from_slice(TASK_GENERATOR_ADDR.as_slice())),
-        ];
-        let encoded_data = encode(&tokens);
+        // Function with signature initialize(address,address,address,address) and selector 0xf8c8765e.
+        let function_signature = "initialize(address,address,address,address)";
+        // let params = vec![
+        //     pauser_registry_addr.tokenize(),
+        //     pausers[0].tokenize(),
+        //     AGGREGATOR_ADDR.tokenize(),
+        //     TASK_GENERATOR_ADDR.tokenize(),
+        // ];
+        // let encoded_data =
+        //     eigen_utils::test_utils::abi::encode_with_selector(function_signature, params);
+
+        let encoded_data = encode_params!(
+            function_signature,
+            pauser_registry_addr,
+            pausers[0],
+            AGGREGATOR_ADDR,
+            TASK_GENERATOR_ADDR
+        );
         let incredible_squaring_task_manager_implementation =
             IncredibleSquaringTaskManager::deploy(
                 provider.clone(),

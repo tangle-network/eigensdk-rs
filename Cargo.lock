@@ -128,6 +128,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloy-abi"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95d80fbdae433a4c98109023eada56d864e49750d131824bad158f59d79a95d2"
+
+[[package]]
 name = "alloy-chains"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4000,6 +4006,7 @@ version = "0.1.0"
 dependencies = [
  "aes",
  "aes-gcm",
+ "alloy-abi",
  "alloy-consensus 0.2.1",
  "alloy-contract",
  "alloy-eips 0.2.1",
@@ -4063,6 +4070,8 @@ dependencies = [
  "eigen-contracts",
  "eigen-utils",
  "fireblocks-client",
+ "incredible-squaring-avs",
+ "tangle-avs",
 ]
 
 [[package]]
@@ -6378,6 +6387,7 @@ name = "incredible-squaring-avs"
 version = "0.1.0"
 dependencies = [
  "alloy",
+ "alloy-abi",
  "alloy-contract",
  "alloy-primitives",
  "alloy-provider 0.2.1",
