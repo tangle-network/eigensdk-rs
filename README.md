@@ -72,7 +72,7 @@ let operator = Operator::new_from_config(
             http_provider,
             ws_provider,
             operator_info_service,
-            signer,
+	signer,
 )
 .await?;
 ```
