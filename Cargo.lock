@@ -128,6 +128,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloy"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f4a4aaae80afd4be443a6aecd92a6b255dcdd000f97996928efb33d8a71e100"
+dependencies = [
+ "alloy-consensus 0.2.1",
+ "alloy-core",
+ "alloy-eips 0.2.1",
+ "alloy-genesis 0.2.1",
+ "alloy-provider 0.2.1",
+ "alloy-rpc-client 0.2.1",
+ "alloy-serde 0.2.1",
+ "alloy-signer 0.2.1",
+ "alloy-transport-http 0.2.1",
+]
+
+[[package]]
 name = "alloy-abi"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6386,7 +6403,7 @@ dependencies = [
 name = "incredible-squaring-avs"
 version = "0.1.0"
 dependencies = [
- "alloy",
+ "alloy 0.1.4",
  "alloy-abi",
  "alloy-contract",
  "alloy-primitives",
@@ -11554,7 +11571,7 @@ dependencies = [
 name = "tangle-avs"
 version = "0.1.0"
 dependencies = [
- "alloy",
+ "alloy 0.1.4",
  "alloy-consensus 0.2.1",
  "alloy-contract",
  "alloy-network 0.2.1",
@@ -11658,6 +11675,54 @@ checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
 dependencies = [
  "rustix 0.38.34",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "test-utils"
+version = "0.1.0"
+dependencies = [
+ "alloy 0.2.1",
+ "alloy-abi",
+ "alloy-contract",
+ "alloy-primitives",
+ "alloy-provider 0.2.1",
+ "alloy-pubsub",
+ "alloy-rpc-client 0.2.1",
+ "alloy-rpc-types",
+ "alloy-rpc-types-eth 0.2.1",
+ "alloy-signer 0.2.1",
+ "alloy-signer-local",
+ "alloy-sol-types",
+ "alloy-transport 0.2.1",
+ "alloy-transport-http 0.2.1",
+ "alloy-transport-ws",
+ "anvil",
+ "ark-bn254",
+ "async-trait",
+ "aws-kms",
+ "aws-sdk-kms",
+ "eigen-contracts",
+ "eigen-utils",
+ "env_logger 0.11.5",
+ "ethabi",
+ "foundry-common",
+ "futures",
+ "gadget-common",
+ "hex",
+ "http-body-util",
+ "hyper 1.4.1",
+ "incredible-squaring-avs",
+ "k256",
+ "log",
+ "prometheus",
+ "rand",
+ "reqwest 0.12.5",
+ "serde",
+ "serde_json",
+ "sha3",
+ "thiserror",
+ "tokio",
+ "url",
 ]
 
 [[package]]
