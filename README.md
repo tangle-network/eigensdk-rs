@@ -74,7 +74,7 @@ let operator = Operator::new_from_config(
             operator_info_service,
             signer,
         )
-        .await?;
+.await?;
 ```
 2. With the operator, simply run the start function:
 ```rust
