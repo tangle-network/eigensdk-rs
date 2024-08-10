@@ -9,15 +9,11 @@ use alloy_primitives::{Address, Bytes, FixedBytes, U256};
 use alloy_provider::Provider;
 use alloy_rpc_types::TransactionReceipt;
 use alloy_signer::k256::ecdsa;
-use alloy_signer::{Signer as alloySigner, SignerSync};
-use eigen_contracts::EIP1271SignatureUtils::EIP1271SignatureUtilsInstance;
-use eigen_contracts::IBlsApkRegistry::PubkeyRegistrationParams;
+use alloy_signer::Signer as alloySigner;
+use eigen_contracts::RegistryCoordinator;
 use eigen_contracts::RegistryCoordinator::SignatureWithSaltAndExpiry;
-use eigen_contracts::{EIP1271SignatureUtils, RegistryCoordinator};
-use k256::ecdsa::signature::Signer;
-use k256::ecdsa::{SigningKey, VerifyingKey};
+use k256::ecdsa::VerifyingKey;
 use rand::Rng;
-use std::str::FromStr;
 
 pub trait AvsRegistryChainWriterTrait {
     async fn register_operator(
@@ -152,8 +148,18 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         let operator_signature_with_salt_and_expiry = SignatureWithSaltAndExpiry {
             signature: operator_signature_bytes,
             salt: operator_to_avs_registration_sig_salt,
-            expiry: operator_to_avs_registration_sig_expiry.into(),
+            expiry: operator_to_avs_registration_sig_expiry,
         };
+
+        let quorum_count = registry_coordinator.quorumCount().call().await.unwrap()._0;
+        log::info!("Quorum count: {:?}", quorum_count);
+
+        let rc_code = self
+            .eth_client_http
+            .get_code_at(self.registry_coordinator_addr)
+            .await
+            .unwrap();
+        log::info!(" Deployed Registry Coordinator Bytecode: {:?}", rc_code);
 
         let tx = registry_coordinator.registerOperator(
             quorum_numbers,
@@ -163,7 +169,6 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         );
 
         let receipt = tx.send().await?.get_receipt().await.unwrap();
-        log::info!("Registration Receipt: {:?}", receipt);
 
         Ok(receipt)
     }

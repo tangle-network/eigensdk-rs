@@ -46,6 +46,7 @@ thiserror.workspace = true
 tokio.workspace = true
 ethabi = "18.0.0"
 anvil.workspace = true
+ethers.workspace = true
 
 #tokio = { workspace = true, features = ["full"] }
 alloy = { workspace = true, features = ["serde", "signers"] }
@@ -62,3 +63,4 @@ url.workspace = true
 #ark-ff.workspace = true
 ark-bn254.workspace = true
 sha3 = "0.10.8"
+nix = "0.28.0"

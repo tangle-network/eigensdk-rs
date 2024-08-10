@@ -257,7 +257,7 @@ impl<T: Config> Operator<T> {
                 .as_secs()
                 + 3600,
         );
-        let register_result = avs_registry_contract_manager
+        let _register_result = avs_registry_contract_manager
             .register_operator_in_quorum_with_avs_registry_coordinator(
                 &ecdsa_signing_key,
                 sig_salt,

@@ -124,11 +124,17 @@ mod tests {
     use eigen_utils::crypto::bls::KeyPair;
     use k256::ecdsa::VerifyingKey;
     use k256::elliptic_curve::SecretKey;
+    use std::env;
     use std::path::Path;
     use std::time::Duration;
 
     #[tokio::test]
-    async fn test_anvil() {
+    async fn test_full_incredible_squaring() {
+        if env::var("RUST_LOG").is_err() {
+            env::set_var("RUST_LOG", "info");
+        }
+        env::set_var("BLS_PASSWORD", "BLS_PASSWORD");
+        env::set_var("ECDSA_PASSWORD", "ECDSA_PASSWORD");
         env_logger::init();
         run_full_incredible_squaring_test().await;
     }
@@ -169,14 +175,14 @@ mod tests {
 
         //---------------- ECDSA ----------------
         // First Account
-        // let hex_key =
-        //     hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
-        //         .unwrap();
+        let hex_key =
+            hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+                .unwrap();
 
         // Second Account
-        let hex_key =
-            hex::decode("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d")
-                .unwrap();
+        // let hex_key =
+        //     hex::decode("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d")
+        //         .unwrap();
 
         let secret_key = SecretKey::from_slice(&hex_key).unwrap();
         let signing_key = SigningKey::from(secret_key.clone());

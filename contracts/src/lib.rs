@@ -150,6 +150,13 @@ sol!(
 );
 
 sol!(
+    #[allow(missing_docs, clippy::too_many_arguments)]
+    #[sol(rpc)]
+    IRegistryCoordinator,
+    "./out/IRegistryCoordinator.sol/IRegistryCoordinator.json"
+);
+
+sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     ProxyAdmin,

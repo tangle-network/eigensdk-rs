@@ -1,6 +1,6 @@
 use crate::encode_params;
 use alloy::signers::Signer;
-use alloy_primitives::{address, bytes::Bytes, Address, Keccak256, Uint, U256};
+use alloy_primitives::{address, Address, Bytes, Keccak256, Uint, U256};
 use alloy_provider::network::{TransactionBuilder, TxSigner};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types_eth::BlockId;
@@ -46,7 +46,14 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     // Initialize the logger
     let _ = env_logger::try_init();
 
-    let (api, mut handle) = spawn(anvil::NodeConfig::test().with_port(8545)).await;
+    let (api, mut handle) = spawn(
+        anvil::NodeConfig::test()
+            .with_port(8545)
+            .with_print_logs(true)
+            .disable_block_gas_limit(true)
+            .with_steps_tracing(true),
+    )
+    .await;
     api.anvil_auto_impersonate_account(true).await.unwrap();
 
     let _http_provider = ProviderBuilder::new()
@@ -319,20 +326,20 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     );
     let &registry_coordinator_addr = registry_coordinator.address();
 
-    let bls_apk_registry = BlsApkRegistry::new(
-        TransparentUpgradeableProxy::deploy(
-            provider.clone(),
-            empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
-            Bytes::from(""),
-        )
-        .await
-        .unwrap()
-        .address()
-        .clone(),
-        provider.clone(),
-    );
-    let &bls_apk_registry_addr = bls_apk_registry.address();
+    // let bls_apk_registry = BlsApkRegistry::new(
+    //     TransparentUpgradeableProxy::deploy(
+    //         provider.clone(),
+    //         empty_contract_addr,
+    //         incredible_squaring_proxy_admin_addr,
+    //         Bytes::from(""),
+    //     )
+    //     .await
+    //     .unwrap()
+    //     .address()
+    //     .clone(),
+    //     provider.clone(),
+    // );
+    // let &bls_apk_registry_addr = bls_apk_registry.address();
 
     let bls_apk_registry = IBlsApkRegistry::new(
         TransparentUpgradeableProxy::deploy(
@@ -553,6 +560,28 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
         .unwrap();
     assert!(registry_coordinator_upgrade.status());
 
+    let registry_coordinator_initialization = registry_coordinator
+        .initialize(
+            pausers[0],
+            pausers[0],
+            pausers[0],
+            pausers[1],
+            U256::from(0),
+            quorum_operator_set_params,
+            quorums_minimum_stake,
+            quorums_strategy_params,
+        )
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+    log::info!(
+        "Registry Coordinator Initialization Receipt: {:?}",
+        registry_coordinator_initialization
+    );
+
     let incredible_squaring_service_manager_implementation =
         IncredibleSquaringServiceManager::deploy(
             provider.clone(),
@@ -619,7 +648,7 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
             registry_coordinator_addr,
             TASK_RESPONSE_WINDOW_BLOCK,
         )
-        .from(dev_account)
+        // .from(dev_account)
         .send()
         .await
         .unwrap()
@@ -634,7 +663,7 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     let incredible_squaring_task_manager_upgrade = incredible_squaring_proxy_admin
         .upgradeAndCall(
             incredible_squaring_task_manager_addr,
-            incredible_squaring_service_manager_implementation_addr,
+            incredible_squaring_task_manager_implementation_addr,
             alloy_primitives::Bytes::from(encoded_data),
         )
         .send()
@@ -647,6 +676,34 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
         "Incredible Squaring Task Manager Upgrade Receipt: {:?}",
         incredible_squaring_task_manager_upgrade
     );
+
+    let eigen_pod_manager = EigenPodManager::deploy(
+        provider.clone(),
+        empty_contract_addr,
+        empty_contract_addr,
+        strategy_manager_addr,
+        from,
+        delegation_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &eigen_pod_manager_addr = eigen_pod_manager.address();
+
+    let slasher_addr = dev_account;
+    let delegation_manager = DelegationManager::deploy(
+        provider.clone(),
+        strategy_manager_addr,
+        slasher_addr,
+        eigen_pod_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &delegation_manager_addr = delegation_manager.address();
+
+    let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
+        .await
+        .unwrap();
+    let &avs_directory_addr = avs_directory.address();
 
     log::info!("ERC20MOCK ADDRESS: {:?}", erc20_mock_addr);
     log::info!("ERC20MOCK STRATEGY ADDRESS: {:?}", erc20_mock_strategy_addr);
@@ -678,6 +735,7 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
         "OPERATOR STATE RETRIEVER ADDRESS: {:?}",
         operator_state_retriever_addr
     );
+    log::info!("DELEGATION MANAGER ADDRESS: {:?}", delegation_manager_addr);
 
     // let _block = provider
     //     .get_block(BlockId::latest(), false.into())
@@ -723,8 +781,8 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     // tokio::spawn(task_spawner);
 
     ContractAddresses {
-        service_manager: incredible_squaring_service_manager_implementation_addr,
-        registry_coordinator: registry_coordinator_implementation_addr,
+        service_manager: incredible_squaring_service_manager_addr,
+        registry_coordinator: registry_coordinator_addr,
         operator_state_retriever: operator_state_retriever_addr,
         delegation_manager: delegation_manager_addr,
         avs_directory: avs_directory_addr,

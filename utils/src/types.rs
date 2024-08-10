@@ -4,10 +4,9 @@ use alloy_primitives::{keccak256, Address, B256, U256};
 use alloy_transport::RpcError;
 use alloy_transport::TransportErrorKind;
 
-use ark_bn254::{Fq as Bn254Fq, G1Affine as Bn254G1Affine, G2Affine as Bn254G2Affine};
+use ark_bn254::{G1Affine as Bn254G1Affine, G2Affine as Bn254G2Affine};
 use ark_ec::AffineRepr;
 
-use ark_ff::BigInt;
 use ark_serialize::CanonicalDeserialize;
 use ark_serialize::CanonicalSerialize;
 use ark_serialize::Compress;
@@ -96,7 +95,7 @@ pub type StakeAmount = U256;
 pub type OperatorId = B256;
 
 pub fn operator_id_from_g1_pubkey(pubkey: &G1Point) -> OperatorId {
-    let pubkey = g1_point_to_ark_point(&pubkey);
+    let pubkey = g1_point_to_ark_point(pubkey);
 
     let mut x_bytes: Vec<u8> = vec![0; pubkey.x.serialized_size(Compress::Yes)];
     pubkey.x.serialize_compressed(&mut x_bytes).unwrap();

@@ -1,5 +1,5 @@
-use crate::test_utils;
-use crate::test_utils::anvil::{Anvil, AnvilInstance};
+use crate::anvil::anvil::{Anvil, AnvilInstance};
+use crate::anvil::random_port;
 use ethers::signers::Signer;
 use std::sync::Arc;
 
@@ -97,7 +97,7 @@ impl LocalEvmChain {
         let port = if port.is_some() {
             port.unwrap()
         } else {
-            test_utils::random_port::random_port()
+            random_port::random_port()
         };
         let mut anvil = Anvil::new()
             .port(port)
