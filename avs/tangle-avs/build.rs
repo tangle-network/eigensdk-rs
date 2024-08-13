@@ -5,16 +5,16 @@ use std::process::Command;
 fn main() {
     // List of directories containing Solidity contracts
     let contract_dirs = vec![
+        "../../contracts",
+        "../../contracts/lib/eigenlayer-middleware",
         "contracts",
-        "contracts/lib/eigenlayer-middleware",
-        // "avs/tangle-avs/contracts",
     ];
 
     // Get the project root directory
     let root = env::var("CARGO_MANIFEST_DIR").unwrap();
 
     for dir in contract_dirs {
-        let full_path = Path::new(&root).join(dir);
+        let full_path = Path::new(&root).join(dir).canonicalize().unwrap();
 
         if full_path.exists() {
             println!("cargo:rerun-if-changed={}", full_path.display());
