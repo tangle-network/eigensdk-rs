@@ -58,6 +58,7 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         quorum_numbers: Bytes,
         socket: String,
     ) -> AvsRegistryContractResult<TransactionReceipt> {
+        log::info!("Signing Key: {:?}", operator_ecdsa_private_key);
         let operator_addr = operator_ecdsa_private_key.verifying_key().to_address();
         log::info!("Operator address: {:?}", operator_addr);
         let registry_coordinator =
@@ -71,10 +72,22 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             .map(|x| x._0)
             .map_err(AvsError::from)?;
 
+        log::info!(
+            "G1 HASHED MESSAGE TO SIGN: X: {:?}, Y: {:?}",
+            g1_hashed_msg_to_sign.X,
+            g1_hashed_msg_to_sign.Y
+        );
+
         let g1_point = G1Point {
             x: g1_hashed_msg_to_sign.X,
             y: g1_hashed_msg_to_sign.Y,
         };
+
+        log::info!(
+            "G1 POINT MESSAGE TO SIGN: X: {:?}, Y: {:?}",
+            g1_point.x,
+            g1_point.y
+        );
 
         let signed_msg = bls_key_pair.sign_hashed_to_curve_message(&g1_point);
         let g1_pubkey_bn254 = bls_key_pair.get_pub_key_g1();
@@ -150,16 +163,6 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             salt: operator_to_avs_registration_sig_salt,
             expiry: operator_to_avs_registration_sig_expiry,
         };
-
-        let quorum_count = registry_coordinator.quorumCount().call().await.unwrap()._0;
-        log::info!("Quorum count: {:?}", quorum_count);
-
-        let rc_code = self
-            .eth_client_http
-            .get_code_at(self.registry_coordinator_addr)
-            .await
-            .unwrap();
-        log::info!(" Deployed Registry Coordinator Bytecode: {:?}", rc_code);
 
         let tx = registry_coordinator.registerOperator(
             quorum_numbers,

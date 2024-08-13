@@ -119,6 +119,12 @@ impl G1Point {
         *self = ark_point_to_g1_point(&pt);
     }
 
+    pub fn mul_bigint(&mut self, bigint: U256) {
+        let affine = g1_point_to_ark_point(self);
+        let pt = affine.mul_bigint(bigint.as_limbs()).into_affine();
+        *self = ark_point_to_g1_point(&pt);
+    }
+
     pub fn from_ark_g1(ark_g1: &G1Affine) -> Self {
         ark_point_to_g1_point(ark_g1)
     }

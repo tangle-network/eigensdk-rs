@@ -19,3 +19,18 @@ macro_rules! encode_params {
         alloy_primitives::Bytes::from(data)
     }};
 }
+
+/// Macro that acts as the Rust equivalent of Solidity's `abi.encode`. Returns [alloy_primitives::Bytes]
+#[macro_export]
+macro_rules! abi_encode {
+    ($($param:expr),*) => {{
+        let mut data = Vec::<u8>::new();
+
+        $(
+            let p = $param.tokenize();
+            data.extend_from_slice(abi::encode(&p).as_slice());
+        )*
+
+        alloy_primitives::Bytes::from(data)
+    }};
+}
