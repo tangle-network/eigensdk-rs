@@ -1,12 +1,10 @@
 use crate::types::AvsError;
 use alloy_primitives::U256;
+use ark_bn254::Fq as F;
 use ark_bn254::{Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_ec::AffineRepr;
 use ark_ff::{BigInteger, BigInteger256};
 use ark_ff::{Field, One, PrimeField};
-use std::ops::Mul;
-
-use ark_bn254::Fq as F;
-use ark_ec::AffineRepr;
 
 pub fn map_to_curve(digest: &[u8; 32]) -> G1Projective {
     let one = F::one();
@@ -68,14 +66,14 @@ pub fn biginteger256_to_u256(bi: BigInteger256) -> U256 {
 }
 
 pub fn get_g1_generator() -> Result<G1Affine, AvsError> {
-    // let g1_affine = G1Affine::new(G1_GENERATOR_X, G1_GENERATOR_Y);
-    let g1_affine = G1Affine::generator();
+    let g1_affine = G1Affine::new(ark_bn254::g1::G1_GENERATOR_X, ark_bn254::g1::G1_GENERATOR_Y);
+    // let g1_affine = G1Affine::generator();
     Ok(g1_affine)
 }
 
 pub fn get_g2_generator() -> Result<G2Affine, AvsError> {
-    // let g2_affine = G2Affine::new(G2_GENERATOR_X, G2_GENERATOR_Y);
-    let g2_affine = G2Affine::generator();
+    let g2_affine = G2Affine::new(ark_bn254::g2::G2_GENERATOR_X, ark_bn254::g2::G2_GENERATOR_Y);
+    // let g2_affine = G2Affine::generator();
     Ok(g2_affine)
 }
 
@@ -84,8 +82,8 @@ pub fn mul_by_generator_g1(pvt_key: Fr) -> Result<G1Projective, AvsError> {
 
     match g1_gen_result {
         Ok(g1_gen) => {
-            let s: G1Projective = g1_gen.into();
-            Ok(s.mul(pvt_key))
+            // let s: G1Projective = g1_gen.into();
+            Ok(g1_gen.mul_bigint(pvt_key.0))
         }
         Err(_) => Err(AvsError::KeyError(
             "Invalid G1 Generator Result".to_string(),
@@ -98,8 +96,8 @@ pub fn mul_by_generator_g2(pvt_key: Fr) -> Result<G2Projective, AvsError> {
 
     match g2_gen_result {
         Ok(g2_gen) => {
-            let s: G2Projective = g2_gen.into();
-            Ok(s.mul(pvt_key))
+            // let s: G2Projective = g2_gen.into();
+            Ok(g2_gen.mul_bigint(pvt_key.0))
         }
         Err(_) => Err(AvsError::KeyError(
             "Invalid G2 Generator Result".to_string(),

@@ -1,23 +1,21 @@
 #![allow(dead_code)]
-use crate::anvil::testnet::incredible_squaring::*;
+use crate::anvil::testnet::tangle::*;
 use alloy_provider::Provider;
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use alloy_transport_ws::WsConnect;
-use incredible_squaring_avs::operator::*;
 use k256::ecdsa::SigningKey;
 use k256::elliptic_curve::SecretKey;
+use tangle_avs::operator::*;
 
 #[tokio::main]
 async fn main() {
     let _ = env_logger::try_init();
-    run_full_incredible_squaring_test().await;
+    run_full_tangle_test().await;
 }
 
 /// Sets up an Operator, given the [ContractAddresses] for the running Testnet you would like utilize
-async fn operator_setup(
-    contract_addresses: ContractAddresses,
-) -> Operator<NodeConfig, OperatorInfoService> {
+async fn operator_setup(contract_addresses: ContractAddresses) -> Operator<NodeConfig> {
     let http_endpoint = "http://127.0.0.1:8545";
     let ws_endpoint = "ws://127.0.0.1:8545";
     let node_config = NodeConfig {
@@ -26,25 +24,22 @@ async fn operator_setup(
         eth_ws_url: ws_endpoint.to_string(),
         bls_private_key_store_path: "./keystore/bls".to_string(),
         ecdsa_private_key_store_path: "./keystore/ecdsa".to_string(),
-        incredible_squaring_service_manager_addr: contract_addresses.service_manager.to_string(),
-        avs_registry_coordinator_addr: contract_addresses.registry_coordinator.to_string(),
-        operator_state_retriever_addr: contract_addresses.operator_state_retriever.to_string(),
+        avs_registry_coordinator_address: contract_addresses.registry_coordinator.to_string(),
         eigen_metrics_ip_port_address: "127.0.0.1:9100".to_string(),
-        delegation_manager_addr: contract_addresses.delegation_manager.to_string(),
-        avs_directory_addr: contract_addresses.avs_directory.to_string(),
+        tangle_validator_service_manager_address: contract_addresses.service_manager.to_string(),
+        delegation_manager_address: contract_addresses.delegation_manager.to_string(),
         operator_address: contract_addresses.operator.to_string(),
         enable_metrics: false,
         enable_node_api: false,
-        server_ip_port_address: "".to_string(),
+        operator_state_retriever_address: contract_addresses.operator_state_retriever.to_string(),
+        avs_directory_address: contract_addresses.avs_directory.to_string(),
     };
-
-    let operator_info_service = OperatorInfoService {};
 
     let hex_key =
         hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80").unwrap();
     let secret_key = SecretKey::from_slice(&hex_key).unwrap();
     let signing_key = SigningKey::from(secret_key.clone());
-    let signer = EigenGadgetSigner {
+    let signer = EigenTangleSigner {
         signer: PrivateKeySigner::from_signing_key(signing_key),
     };
 
@@ -70,15 +65,14 @@ async fn operator_setup(
 
     println!("Now setting up Operator!");
 
-    Operator::<NodeConfig, OperatorInfoService>::new_from_config(
+    Operator::<NodeConfig>::new_from_config(
         node_config.clone(),
-        EigenGadgetProvider {
+        EigenTangleProvider {
             provider: http_provider,
         },
-        EigenGadgetProvider {
+        EigenTangleProvider {
             provider: ws_provider,
         },
-        operator_info_service,
         signer,
     )
     .await
@@ -87,12 +81,12 @@ async fn operator_setup(
 
 /// THIS FUNCTION IS FOR TESTING ONLY
 ///
-/// Runs the Incredible Squaring Testnet and then creates an Operator that connects and registers.
-async fn run_full_incredible_squaring_test() {
+/// Runs the Tangle Testnet and then creates an Operator that connects and registers.
+async fn run_full_tangle_test() {
     let _ = env_logger::try_init();
 
     // Runs new Anvil Testnet - used for deploying programmatically in rust
-    let contract_addresses = run_incredible_squaring_testnet().await;
+    let contract_addresses = run_tangle_testnet().await;
 
     let operator = operator_setup(contract_addresses).await;
 
@@ -108,25 +102,25 @@ mod tests {
     use std::env;
 
     // #[tokio::test]
-    // async fn test_full_incredible_squaring() {
+    // async fn test_full_tangle() {
     //     if env::var("RUST_LOG").is_err() {
     //         env::set_var("RUST_LOG", "info");
     //     }
     //     env::set_var("BLS_PASSWORD", "BLS_PASSWORD");
     //     env::set_var("ECDSA_PASSWORD", "ECDSA_PASSWORD");
     //     env_logger::init();
-    //     run_full_incredible_squaring_test().await;
+    //     run_full_tangle_test().await;
     // }
 
     #[tokio::test]
-    async fn test_incredible_squaring_deployment() {
+    async fn test_tangle_deployment() {
         if env::var("RUST_LOG").is_err() {
             env::set_var("RUST_LOG", "info");
         }
         env::set_var("BLS_PASSWORD", "BLS_PASSWORD");
         env::set_var("ECDSA_PASSWORD", "ECDSA_PASSWORD");
         let _ = env_logger::try_init();
-        run_incredible_squaring_testnet().await;
+        let _ = run_tangle_testnet().await;
     }
 
     // TODO: Get test for loading from state working

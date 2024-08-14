@@ -1,5 +1,5 @@
 use alloy_contract::private::Ethereum;
-use alloy_primitives::{ruint, Address, ChainId, FixedBytes, Signature, B256};
+use alloy_primitives::{Address, ChainId, Signature, B256};
 use alloy_provider::{Provider, RootProvider};
 use alloy_signer_local::PrivateKeySigner;
 use alloy_transport::BoxTransport;
@@ -10,15 +10,11 @@ use eigen_utils::crypto::bls::KeyPair;
 use eigen_utils::node_api::NodeApi;
 use eigen_utils::types::AvsError;
 use eigen_utils::Config;
-use gadget_common::subxt_signer::bip39::rand;
-use gadget_common::subxt_signer::bip39::rand::Rng;
 use k256::ecdsa::SigningKey;
 use log::error;
-use ruint::aliases;
 use std::future::Future;
 use std::pin::Pin;
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
 const AVS_NAME: &str = "incredible-squaring";
@@ -247,21 +243,9 @@ impl<T: Config> Operator<T> {
         //     );
         // }
 
-        let mut salt = [0u8; 32];
-        rand::thread_rng().fill(&mut salt);
-        let sig_salt = FixedBytes::from_slice(&salt);
-        let expiry = aliases::U256::from(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs()
-                + 3600,
-        );
         let _register_result = avs_registry_contract_manager
-            .register_operator_in_quorum_with_avs_registry_coordinator(
+            .register_operator(
                 &ecdsa_signing_key,
-                sig_salt,
-                expiry,
                 &bls_keypair,
                 alloy_primitives::Bytes::from(vec![0]),
                 "127.0.0.1:8545".to_string(),

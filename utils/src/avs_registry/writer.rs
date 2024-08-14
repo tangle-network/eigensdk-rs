@@ -1,8 +1,6 @@
 #![allow(async_fn_in_trait)]
-
 use super::{AvsRegistryContractManager, AvsRegistryContractResult};
-use crate::crypto::bls::{g1_point_to_ark_point, g1_point_to_g1_projective, G1Point, KeyPair};
-use crate::crypto::bn254::get_g2_generator;
+use crate::crypto::bls::{G1Point, KeyPair};
 use crate::crypto::ecdsa::ToAddress;
 use crate::el_contracts::reader::ElReader;
 use crate::{types::*, Config};
@@ -11,8 +9,6 @@ use alloy_provider::Provider;
 use alloy_rpc_types::TransactionReceipt;
 use alloy_signer::k256::ecdsa;
 use alloy_signer::Signer as alloySigner;
-use ark_ec::pairing::Pairing;
-use ark_ec::CurveGroup;
 use eigen_contracts::RegistryCoordinator;
 use eigen_contracts::RegistryCoordinator::SignatureWithSaltAndExpiry;
 use k256::ecdsa::VerifyingKey;
@@ -66,41 +62,24 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         let registry_coordinator =
             RegistryCoordinator::new(self.registry_coordinator_addr, self.eth_client_http.clone());
 
-        // params to register bls pubkey with bls apk registry
         let g1_hashed_msg_to_sign = registry_coordinator
             .pubkeyRegistrationMessageHash(operator_addr)
+            .from(operator_addr)
             .call()
             .await
             .map(|x| x._0)
             .map_err(AvsError::from)?;
-
-        log::info!(
-            "G1 HASHED MESSAGE TO SIGN: X: {:?}, Y: {:?}",
-            g1_hashed_msg_to_sign.X,
-            g1_hashed_msg_to_sign.Y
-        );
 
         let g1_point = G1Point {
             x: g1_hashed_msg_to_sign.X,
             y: g1_hashed_msg_to_sign.Y,
         };
 
-        log::info!(
-            "G1 POINT MESSAGE TO SIGN: X: {:?}, Y: {:?}",
-            g1_point.x,
-            g1_point.y
-        );
-
         let signed_msg = bls_key_pair
             .sign_hashed_to_curve_message(&g1_point)
             .g1_point;
         let g1_pubkey_bn254 = bls_key_pair.get_pub_key_g1();
         let g2_pubkey_bn254 = bls_key_pair.get_pub_key_g2();
-        log::info!(
-            "SIGNED MESSAGE G1POINT: X: {:?}, Y: {:?}",
-            signed_msg.x,
-            signed_msg.y
-        );
 
         let pubkey_reg_params = RegistryCoordinator::PubkeyRegistrationParams {
             pubkeyRegistrationSignature: RegistryCoordinator::G1Point {
@@ -116,22 +95,6 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
                 Y: g2_pubkey_bn254.y,
             },
         };
-        log::info!(
-            "REGISTRY COORDINATOR G1POINT: X: {:?}, Y: {:?}",
-            pubkey_reg_params.pubkeyRegistrationSignature.X,
-            pubkey_reg_params.pubkeyRegistrationSignature.Y
-        );
-
-        let signature = g1_point_to_g1_projective(&signed_msg);
-        // PAIRING TEST
-        let e1 = ark_bn254::Bn254::pairing(signature.into_affine(), get_g2_generator().unwrap());
-
-        let e2 = ark_bn254::Bn254::pairing(
-            g1_point_to_ark_point(&g1_point),
-            bls_key_pair.get_pub_key_g2().to_ark_g2(),
-        );
-
-        assert_eq!(e1, e2);
 
         // Generate a random salt and 1 hour expiry for the signature
         let mut rng = rand::thread_rng();
@@ -176,13 +139,6 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             operator_signature_bytes
         );
 
-        // let wallet = alloy_signer_local::PrivateKeySigner::from(operator_ecdsa_private_key.clone());
-        // let operator_signature = wallet.sign_hash_sync(&msg_to_sign).unwrap();
-        // let operator_signature_bytes = operator_signature.as_bytes();
-        // log::info!("Operator Wallet Hash signature as bytes: {:?}", operator_signature_bytes);
-        // let operator_signature_bytes = Bytes::from(operator_signature_bytes);
-        // log::info!("Operator Wallet Hash signature in Alloy Bytes: {:?}", operator_signature_bytes);
-
         let operator_signature_with_salt_and_expiry = SignatureWithSaltAndExpiry {
             signature: operator_signature_bytes,
             salt: operator_to_avs_registration_sig_salt,
@@ -226,25 +182,15 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             .await
             .map(|x| x._0)
             .map_err(AvsError::from)?;
-        log::info!(
-            "G1 Hashed msg to sign: X: {:?}, Y: {:?}",
-            g1_hashed_msg_to_sign.X,
-            g1_hashed_msg_to_sign.Y
-        );
 
         let g1_point = G1Point {
             x: g1_hashed_msg_to_sign.X,
             y: g1_hashed_msg_to_sign.Y,
         };
-        log::info!("G1 Point: {:?}", g1_point);
 
         let signed_msg = bls_key_pair.sign_hashed_to_curve_message(&g1_point);
-
         let g1_pubkey_bn254 = bls_key_pair.get_pub_key_g1();
-        log::info!("G1 Pubkey: {:?}", g1_pubkey_bn254);
-
         let g2_pubkey_bn254 = bls_key_pair.get_pub_key_g2();
-        log::info!("G2 Pubkey: {:?}", g2_pubkey_bn254);
 
         let pubkey_reg_params = RegistryCoordinator::PubkeyRegistrationParams {
             pubkeyRegistrationSignature: RegistryCoordinator::G1Point {
@@ -293,18 +239,6 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
                 salt: operator_to_avs_registration_sig_salt,
                 expiry: operator_to_avs_registration_sig_expiry,
             };
-        log::info!(
-            "Operator signature: {:?}",
-            operator_signature_with_salt_and_expiry.signature
-        );
-        log::info!(
-            "Operator salt: {:?}",
-            operator_signature_with_salt_and_expiry.salt
-        );
-        log::info!(
-            "Operator expiry: {:?}",
-            operator_signature_with_salt_and_expiry.expiry
-        );
 
         let registry_coordinator =
             RegistryCoordinator::new(self.registry_coordinator_addr, self.eth_client_http.clone());
@@ -315,33 +249,14 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             operator_signature_with_salt_and_expiry,
         );
 
-        let quorum_count = registry_coordinator.quorumCount().call().await.unwrap();
-        log::info!("Quorum count: {:?}", quorum_count._0);
-
-        let bitmap = registry_coordinator
-            .getCurrentQuorumBitmap(operator_id_from_key_pair(bls_key_pair))
-            .call()
-            .await
-            .unwrap();
-        log::info!("Bitmap: {:?}", bitmap._0);
-
-        let _call = builder.call().await.unwrap();
-
         let tx = builder.send().await?;
         let watch = tx.watch().await?;
-        log::info!(
-            "Registered operator with the AVS's registry coordinator: {:?}",
-            watch
-        );
-
         let receipt = self
             .eth_client_http
             .get_transaction_receipt(watch)
             .await
             .unwrap()
             .unwrap();
-
-        log::info!("Successfully registered operator with AVS registry coordinator");
 
         Ok(receipt)
     }

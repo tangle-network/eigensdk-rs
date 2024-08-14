@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::encode_params;
 use alloy_primitives::{address, Address, Bytes, Keccak256, U256};
 use alloy_provider::ProviderBuilder;
@@ -7,15 +8,12 @@ use eigen_contracts::{
     RegistryCoordinator::{OperatorSetParam, StrategyParams},
     *,
 };
-use incredible_squaring_avs::avs::{
-    IncredibleSquaringServiceManager, IncredibleSquaringTaskManager,
-};
+use tangle_avs::{TangleValidatorServiceManager, TangleValidatorTaskManager};
 
 pub static BLS_PASSWORD: &str = "BLS_PASSWORD";
 pub static ECDSA_PASSWORD: &str = "ECDSA_PASSWORD";
 pub static TASK_RESPONSE_WINDOW_BLOCK: u32 = 10;
 pub static TASK_DURATION_BLOCKS: u32 = 0;
-// static QUORUM_THRESHOLD_PERCENTAGE: U256 = U256::from(100);
 pub static AGGREGATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
 pub static TASK_GENERATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
 
@@ -28,8 +26,8 @@ pub struct ContractAddresses {
     pub operator: Address,
 }
 
-/// Spawns and runs an Anvil Node, deploying the Smart Contracts that are relevant to the Incredible Squaring AVS to it.
-pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
+/// Spawns and runs an Anvil node, deploying the Smart Contracts that are relevant to the Tangle AVS to it.
+pub async fn run_tangle_testnet() -> ContractAddresses {
     // Initialize the logger
     let _ = env_logger::try_init();
 
@@ -129,11 +127,8 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
 
     // Deploy Incredible Squaring Contracts
     let number_of_strategies = strategies.len();
-    println!("Number of Strategies: {:?}", number_of_strategies);
 
-    // let incredible_squaring_proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
-    // let &incredible_squaring_proxy_admin_addr = incredible_squaring_proxy_admin.address();
-    let incredible_squaring_proxy_admin = ProxyAdmin::deploy_builder(provider.clone())
+    let tangle_validator_proxy_admin = ProxyAdmin::deploy_builder(provider.clone())
         .from(dev_account)
         .send()
         .await
@@ -141,27 +136,26 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .get_receipt()
         .await
         .unwrap();
-    assert!(incredible_squaring_proxy_admin.status());
+    assert!(tangle_validator_proxy_admin.status());
 
-    let incredible_squaring_proxy_admin = incredible_squaring_proxy_admin.contract_address.unwrap();
-    let incredible_squaring_proxy_admin_addr = incredible_squaring_proxy_admin;
-    let incredible_squaring_proxy_admin =
-        ProxyAdmin::new(incredible_squaring_proxy_admin_addr, provider.clone());
+    let tangle_validator_proxy_admin = tangle_validator_proxy_admin.contract_address.unwrap();
+    let tangle_validator_proxy_admin_addr = tangle_validator_proxy_admin;
+    let tangle_validator_proxy_admin =
+        ProxyAdmin::new(tangle_validator_proxy_admin_addr, provider.clone());
 
     let pausers = [dev_account, dev_account];
 
-    let incredible_squaring_pauser_registry =
-        PauserRegistry::deploy(provider.clone()).await.unwrap();
-    let &_incredible_squaring_pauser_registry_addr = incredible_squaring_pauser_registry.address();
+    let tangle_validator_pauser_registry = PauserRegistry::deploy(provider.clone()).await.unwrap();
+    let &_tangle_validator_pauser_registry_addr = tangle_validator_pauser_registry.address();
 
     let empty_contract = EmptyContract::deploy(provider.clone()).await.unwrap();
     let &empty_contract_addr = empty_contract.address();
 
-    let incredible_squaring_service_manager = IncredibleSquaringServiceManager::new(
+    let tangle_validator_service_manager = TangleValidatorServiceManager::new(
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
+            tangle_validator_proxy_admin_addr,
             Bytes::from(""),
         )
         .await
@@ -169,13 +163,13 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .address(),
         provider.clone(),
     );
-    let &incredible_squaring_service_manager_addr = incredible_squaring_service_manager.address();
+    let &tangle_validator_service_manager_addr = tangle_validator_service_manager.address();
 
-    let incredible_squaring_task_manager = IncredibleSquaringTaskManager::new(
+    let tangle_validator_task_manager = TangleValidatorTaskManager::new(
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
+            tangle_validator_proxy_admin_addr,
             Bytes::from(""),
         )
         .await
@@ -183,13 +177,13 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .address(),
         provider.clone(),
     );
-    let &incredible_squaring_task_manager_addr = incredible_squaring_task_manager.address();
+    let &tangle_validator_task_manager_addr = tangle_validator_task_manager.address();
 
     let registry_coordinator = RegistryCoordinator::new(
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
+            tangle_validator_proxy_admin_addr,
             Bytes::from(""),
         )
         .await
@@ -203,7 +197,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
+            tangle_validator_proxy_admin_addr,
             Bytes::from(""),
         )
         .await
@@ -217,7 +211,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
+            tangle_validator_proxy_admin_addr,
             Bytes::from(""),
         )
         .await
@@ -231,7 +225,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
+            tangle_validator_proxy_admin_addr,
             Bytes::from(""),
         )
         .await
@@ -246,7 +240,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .unwrap();
     let &operator_state_retriever_addr = operator_state_retriever.address();
 
-    //Now, deploy the implementation contracts using the proxy contracts as inputs
+    // Now, deploy the implementation contracts using the proxy contracts as inputs
     let stake_registry_implementation = StakeRegistry::deploy(
         provider.clone(),
         registry_coordinator_addr,
@@ -255,7 +249,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     .await
     .unwrap();
     let &stake_registry_implementation_addr = stake_registry_implementation.address();
-    let stake_registry_upgrade = incredible_squaring_proxy_admin
+    let stake_registry_upgrade = tangle_validator_proxy_admin
         .upgrade(stake_registry_addr, stake_registry_implementation_addr)
         .send()
         .await
@@ -270,7 +264,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
             .await
             .unwrap();
     let &bls_apk_registry_implementation_addr = bls_apk_registry_implementation.address();
-    let bls_apk_registry_upgrade = incredible_squaring_proxy_admin
+    let bls_apk_registry_upgrade = tangle_validator_proxy_admin
         .upgrade(bls_apk_registry_addr, bls_apk_registry_implementation_addr)
         .send()
         .await
@@ -285,7 +279,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
             .await
             .unwrap();
     let &index_registry_implementation_addr = index_registry_implementation.address();
-    let index_registry_upgrade = incredible_squaring_proxy_admin
+    let index_registry_upgrade = tangle_validator_proxy_admin
         .upgrade(index_registry_addr, index_registry_implementation_addr)
         .send()
         .await
@@ -297,7 +291,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
 
     let registry_coordinator_implementation = RegistryCoordinator::deploy(
         provider.clone(),
-        incredible_squaring_service_manager_addr,
+        tangle_validator_service_manager_addr,
         stake_registry_addr,
         bls_apk_registry_addr,
         index_registry_addr,
@@ -333,7 +327,6 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
 
     // Function with signature initialize(address,address,address,address,uint256,(uint32,uint16,uint16)[],uint96[],(address,uint96)[][]) and selector 0xdd8283f3.
     let function_signature = "initialize(address,address,address,address,uint256,(uint32,uint16,uint16)[],uint96[],(address,uint96)[][])";
-
     let _encoded_data = encode_params!(
         function_signature,
         pausers[0],
@@ -346,7 +339,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         quorums_strategy_params
     );
 
-    let registry_coordinator_upgrade = incredible_squaring_proxy_admin
+    let registry_coordinator_upgrade = tangle_validator_proxy_admin
         .upgrade(
             registry_coordinator_addr,
             registry_coordinator_implementation_addr,
@@ -378,22 +371,21 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .unwrap();
     assert!(registry_coordinator_initialization.status());
 
-    let incredible_squaring_service_manager_implementation =
-        IncredibleSquaringServiceManager::deploy(
-            provider.clone(),
-            avs_directory_addr,
-            registry_coordinator_addr,
-            stake_registry_addr,
-            incredible_squaring_task_manager_addr,
-        )
-        .await
-        .unwrap();
-    let &incredible_squaring_service_manager_implementation_addr =
-        incredible_squaring_service_manager_implementation.address();
-    let incredible_squaring_service_manager_upgrade = incredible_squaring_proxy_admin
+    let tangle_validator_service_manager_implementation = TangleValidatorServiceManager::deploy(
+        provider.clone(),
+        avs_directory_addr,
+        registry_coordinator_addr,
+        stake_registry_addr,
+        tangle_validator_task_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &tangle_validator_service_manager_implementation_addr =
+        tangle_validator_service_manager_implementation.address();
+    let tangle_validator_service_manager_upgrade = tangle_validator_proxy_admin
         .upgrade(
-            incredible_squaring_service_manager_addr,
-            incredible_squaring_service_manager_implementation_addr,
+            tangle_validator_service_manager_addr,
+            tangle_validator_service_manager_implementation_addr,
         )
         .send()
         .await
@@ -401,41 +393,31 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .get_receipt()
         .await
         .unwrap();
-    assert!(incredible_squaring_service_manager_upgrade.status());
+    assert!(tangle_validator_service_manager_upgrade.status());
 
-    // Function with signature initialize(address,address,address,address) and selector 0xf8c8765e.
-    let function_signature = "initialize(address,address,address,address)";
-    let encoded_data = encode_params!(
-        function_signature,
-        pauser_registry_addr,
-        pausers[0],
-        AGGREGATOR_ADDR,
-        TASK_GENERATOR_ADDR
-    );
+    // Function with signature initialize(address,address) and selector 0x485cc955
+    let function_signature = "initialize(address,address)";
+    let encoded_data = encode_params!(function_signature, pauser_registry_addr, pausers[0]);
 
-    let incredible_squaring_task_manager_implementation =
-        IncredibleSquaringTaskManager::deploy_builder(
-            provider.clone(),
-            registry_coordinator_addr,
-            TASK_RESPONSE_WINDOW_BLOCK,
-        )
-        .send()
-        .await
-        .unwrap()
-        .get_receipt()
-        .await
-        .unwrap();
-    assert!(incredible_squaring_task_manager_implementation.status());
+    let tangle_validator_task_manager_implementation =
+        TangleValidatorTaskManager::deploy_builder(provider.clone(), registry_coordinator_addr)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    assert!(tangle_validator_task_manager_implementation.status());
 
-    let incredible_squaring_task_manager_implementation_addr =
-        incredible_squaring_task_manager_implementation
+    let tangle_validator_task_manager_implementation_addr =
+        tangle_validator_task_manager_implementation
             .contract_address
             .unwrap();
 
-    let incredible_squaring_task_manager_upgrade = incredible_squaring_proxy_admin
+    let tangle_validator_task_manager_upgrade = tangle_validator_proxy_admin
         .upgradeAndCall(
-            incredible_squaring_task_manager_addr,
-            incredible_squaring_task_manager_implementation_addr,
+            tangle_validator_task_manager_addr,
+            tangle_validator_task_manager_implementation_addr,
             encoded_data,
         )
         .send()
@@ -444,7 +426,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .get_receipt()
         .await
         .unwrap();
-    assert!(incredible_squaring_task_manager_upgrade.status());
+    assert!(tangle_validator_task_manager_upgrade.status());
 
     let eigen_pod_manager = EigenPodManager::deploy(
         provider.clone(),
@@ -477,20 +459,20 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     log::info!("ERC20MOCK ADDRESS: {:?}", erc20_mock_addr);
     log::info!("ERC20MOCK STRATEGY ADDRESS: {:?}", erc20_mock_strategy_addr);
     log::info!(
-        "INCREDIBLE SQUARING TASK MANAGER ADDRESS: {:?}",
-        incredible_squaring_task_manager_addr
+        "TANGLE VALIDATOR TASK MANAGER ADDRESS: {:?}",
+        tangle_validator_task_manager_addr
     );
     log::info!(
-        "INCREDIBLE SQUARING TASK MANAGER IMPLEMENTATION ADDRESS: {:?}",
-        incredible_squaring_task_manager_implementation_addr
+        "TANGLE VALIDATOR TASK MANAGER IMPLEMENTATION ADDRESS: {:?}",
+        tangle_validator_task_manager_implementation_addr
     );
     log::info!(
-        "INCREDIBLE SQUARING SERVICE MANAGER ADDRESS: {:?}",
-        incredible_squaring_service_manager_addr
+        "TANGLE VALIDATOR SERVICE MANAGER ADDRESS: {:?}",
+        tangle_validator_service_manager_addr
     );
     log::info!(
-        "INCREDIBLE SQUARING SERVICE MANAGER IMPLEMENTATION ADDRESS: {:?}",
-        incredible_squaring_service_manager_implementation_addr
+        "TANGLE VALIDATOR SERVICE MANAGER IMPLEMENTATION ADDRESS: {:?}",
+        tangle_validator_service_manager_implementation_addr
     );
     log::info!(
         "REGISTRY COORDINATOR ADDRESS: {:?}",
@@ -506,38 +488,8 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     );
     log::info!("DELEGATION MANAGER ADDRESS: {:?}", delegation_manager_addr);
 
-    // let spawner_task_manager_address = task_manager_addr.clone();
-    // // let spawner_provider = provider.clone();
-    // let spawner_provider = provider;
-    // let task_spawner = async move {
-    //     let manager = IncredibleSquaringTaskManager::new(
-    //         spawner_task_manager_address,
-    //         spawner_provider.clone(),
-    //     );
-    //     loop {
-    //         api.mine_one().await;
-    //         log::info!("About to create new task");
-    //         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
-    //         let result = manager
-    //             .createNewTask(U256::from(2), 100u32, Bytes::from("0"))
-    //             .send()
-    //             .await
-    //             .unwrap()
-    //             .watch()
-    //             .await
-    //             .unwrap();
-    //         api.mine_one().await;
-    //         log::info!("Created new task: {:?}", result);
-    //         // let latest_task = manager.latestTaskNum().call().await.unwrap()._0;
-    //         // log::info!("Latest task: {:?}", latest_task);
-    //         // let task_hash = manager.allTaskHashes(latest_task).call().await.unwrap()._0;
-    //         // log::info!("Task info: {:?}", task_hash);
-    //     }
-    // };
-    // tokio::spawn(task_spawner);
-
     ContractAddresses {
-        service_manager: incredible_squaring_service_manager_addr,
+        service_manager: tangle_validator_service_manager_addr,
         registry_coordinator: registry_coordinator_addr,
         operator_state_retriever: operator_state_retriever_addr,
         delegation_manager: delegation_manager_addr,

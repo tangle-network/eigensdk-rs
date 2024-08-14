@@ -336,10 +336,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         let operator_is_registered = self
             .avs_registry_contract_manager
             .is_operator_registered(self.operator_addr)
-            .await; //?;
-                    // if !operator_is_registered {
-                    //     return Err(OperatorError::OperatorNotRegistered);
-                    // }
+            .await;
         log::info!("Operator registration status: {:?}", operator_is_registered);
 
         if self.config.enable_node_api {

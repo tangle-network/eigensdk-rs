@@ -41,7 +41,7 @@ impl AnvilInstance {
 
     /// Returns the chain of the anvil instance
     pub fn chain_id(&self) -> u64 {
-        self.chain_id.unwrap_or_else(|| 0u64)
+        self.chain_id.unwrap_or(0u64)
     }
 
     /// Returns the HTTP endpoint of this instance

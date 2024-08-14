@@ -1,5 +1,6 @@
 use super::bn254::{
-    get_g2_generator, map_to_curve, mul_by_generator_g1, point_to_u256, u256_to_point,
+    get_g1_generator, get_g2_generator, map_to_curve, mul_by_generator_g1, point_to_u256,
+    u256_to_point,
 };
 use crate::types::AvsError;
 use alloy_primitives::U256;
@@ -22,7 +23,7 @@ use scrypt::{password_hash, Params, Scrypt};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 use std::fs;
-use std::ops::Neg;
+use std::ops::{Add, Neg, Sub};
 use std::path::Path;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -73,9 +74,8 @@ impl CanonicalDeserialize for G1Point {
 
 impl G1Point {
     pub fn new(x: F, y: F) -> Self {
-        // let point = G1Projective::new(x, y, Fq::one());
-        let x = U256::from_limbs(x.0 .0);
-        let y = U256::from_limbs(y.0 .0);
+        let x = point_to_u256(x);
+        let y = point_to_u256(y);
         G1Point { x, y }
     }
 
@@ -96,28 +96,30 @@ impl G1Point {
     }
 
     pub fn generator() -> Self {
-        let gen = G1Affine::generator();
+        // let gen = G1Affine::generator();
+        let gen = get_g1_generator().unwrap();
         ark_point_to_g1_point(&gen)
     }
 
     pub fn add(&mut self, other: &G1Point) {
         let affine_p1 = g1_point_to_ark_point(self);
         let affine_p2 = g1_point_to_ark_point(other);
-        let pt = (affine_p1 + affine_p2).into_affine();
-        *self = ark_point_to_g1_point(&pt);
+        // let pt = (affine_p1 + affine_p2).into_affine();
+        let pt = affine_p1.add(affine_p2);
+        *self = g1_projective_to_g1_point(&pt);
     }
 
     pub fn sub(&mut self, other: &G1Point) {
         let affine_p1 = g1_point_to_ark_point(self);
         let affine_p2 = g1_point_to_ark_point(other);
-        let pt = (affine_p1 - affine_p2).into_affine();
-        *self = ark_point_to_g1_point(&pt);
+        let pt = affine_p1.sub(affine_p2);
+        *self = g1_projective_to_g1_point(&pt);
     }
 
     pub fn mul(&mut self, scalar: Fr) {
         let affine = g1_point_to_ark_point(self);
-        let pt = affine.mul_bigint(scalar.0).into_affine();
-        *self = ark_point_to_g1_point(&pt);
+        let pt = affine.mul_bigint(scalar.0);
+        *self = g1_projective_to_g1_point(&pt);
     }
 
     pub fn mul_bigint(&mut self, bigint: U256) {
@@ -178,10 +180,9 @@ impl CanonicalDeserialize for G2Point {
 impl G2Point {
     /// Create a new [G2Point] from [Field] components. This is unchecked and will not verify that the point is on the curve.
     pub fn new(x: [F; 2], y: [F; 2]) -> Self {
-        Self {
-            x: [U256::from_limbs(x[0].0 .0), U256::from_limbs(x[1].0 .0)],
-            y: [U256::from_limbs(y[0].0 .0), U256::from_limbs(y[1].0 .0)],
-        }
+        let x = [point_to_u256(x[0]), point_to_u256(x[1])];
+        let y = [point_to_u256(y[0]), point_to_u256(y[1])];
+        Self { x, y }
     }
 
     /// Returns the bytes representation of a [G2Point] as a [Vec] of [u8].
@@ -194,7 +195,7 @@ impl G2Point {
     /// Negates a [G2Point].
     pub fn neg(&self) -> Self {
         let affine = g2_point_to_ark_point(self);
-        let neg_affine = -affine;
+        let neg_affine = affine.neg();
         ark_point_to_g2_point(&neg_affine)
     }
 
@@ -205,7 +206,8 @@ impl G2Point {
 
     /// Uses the fixed [G2Affine::generator] to generate a [G2Point].
     pub fn generator() -> Self {
-        let gen = G2Affine::generator();
+        // let gen = G2Affine::generator();
+        let gen = get_g2_generator().unwrap();
         ark_point_to_g2_point(&gen)
     }
 
@@ -214,8 +216,9 @@ impl G2Point {
         let affine_p1 = g2_point_to_ark_point(self);
         let affine_p2 = g2_point_to_ark_point(other);
 
-        let pt = (affine_p1 + affine_p2).into_affine();
-        *self = ark_point_to_g2_point(&pt);
+        // let pt = (affine_p1 + affine_p2).into_affine();
+        let pt = affine_p1.add(affine_p2);
+        *self = ark_point_to_g2_point(&pt.into_affine());
     }
 
     /// Subtraction Operation for [G2Point].
@@ -223,8 +226,9 @@ impl G2Point {
         let affine_p1 = g2_point_to_ark_point(self);
         let affine_p2 = g2_point_to_ark_point(other);
 
-        let pt = (affine_p1 - affine_p2).into_affine();
-        *self = ark_point_to_g2_point(&pt);
+        // let pt = (affine_p1 - affine_p2).into_affine();
+        let pt = affine_p1.sub(affine_p2);
+        *self = ark_point_to_g2_point(&pt.into_affine());
     }
 
     /// Multiplication Operation for [G2Point].
@@ -528,7 +532,13 @@ impl KeyPair {
     }
 
     pub fn sign_hashed_to_curve_message(&self, g1_hashed_msg: &G1Point) -> Signature {
-        let sig_point = g1_point_to_g1_projective(g1_hashed_msg);
+        // let sig_point = g1_point_to_g1_projective(g1_hashed_msg);
+        // let sig = sig_point.mul_bigint(self.priv_key.0);
+        // Signature {
+        //     g1_point: ark_point_to_g1_point(&sig.into_affine()),
+        // }
+        //
+        let sig_point = g1_point_to_ark_point(g1_hashed_msg);
         let sig = sig_point.mul_bigint(self.priv_key.0);
         Signature {
             g1_point: ark_point_to_g1_point(&sig.into_affine()),
