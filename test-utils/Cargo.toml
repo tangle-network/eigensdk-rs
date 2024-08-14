@@ -7,13 +7,17 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
-#[lib]
-#name = "test_utils"
-#path = "src/lib.rs"
-#
-#[[bin]]
-#name = "incredible_squaring"
-#path = "src/incredible_squaring.rs"
+[lib]
+name = "test_utils"
+path = "src/lib.rs"
+
+[[bin]]
+name = "incredible_squaring"
+path = "src/bin/incredible_squaring.rs"
+
+[[bin]]
+name = "tangle"
+path = "src/bin/tangle.rs"
 
 [dependencies]
 alloy-abi.workspace = true

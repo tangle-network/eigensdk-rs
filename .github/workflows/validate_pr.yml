@@ -16,6 +16,34 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  forge:
+    name: Forge
+    runs-on: macos-latest
+    steps:
+      - name: Install Foundry
+        run: |
+          curl -L https://foundry.paradigm.xyz | bash
+          foundryup
+
+      - name: Verify Forge installation
+        run: forge --version
+
+      - name: Set up Foundry cache
+        run: |
+          forge install
+
+      - name: Run build script
+        run: |
+          chmod +x ./test-utils/scripts/build.sh
+          ./test-utils/scripts/build.sh
+
+      - name: Upload Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: ./out/
+
   formatting:
     name: Rustfmt
     runs-on: ubuntu-latest

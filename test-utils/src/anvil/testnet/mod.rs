@@ -1,2 +1,2 @@
 pub mod incredible_squaring;
-pub(crate) mod tangle;
+pub mod tangle;

@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use crate::anvil::testnet::incredible_squaring::*;
 use alloy_provider::Provider;
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
@@ -7,6 +6,7 @@ use alloy_transport_ws::WsConnect;
 use incredible_squaring_avs::operator::*;
 use k256::ecdsa::SigningKey;
 use k256::elliptic_curve::SecretKey;
+use test_utils::anvil::testnet::incredible_squaring::*;
 
 #[tokio::main]
 async fn main() {
@@ -107,16 +107,16 @@ mod tests {
     use k256::elliptic_curve::SecretKey;
     use std::env;
 
-    // #[tokio::test]
-    // async fn test_full_incredible_squaring() {
-    //     if env::var("RUST_LOG").is_err() {
-    //         env::set_var("RUST_LOG", "info");
-    //     }
-    //     env::set_var("BLS_PASSWORD", "BLS_PASSWORD");
-    //     env::set_var("ECDSA_PASSWORD", "ECDSA_PASSWORD");
-    //     env_logger::init();
-    //     run_full_incredible_squaring_test().await;
-    // }
+    #[tokio::test]
+    async fn test_full_incredible_squaring() {
+        if env::var("RUST_LOG").is_err() {
+            env::set_var("RUST_LOG", "info");
+        }
+        env::set_var("BLS_PASSWORD", "BLS_PASSWORD");
+        env::set_var("ECDSA_PASSWORD", "ECDSA_PASSWORD");
+        env_logger::init();
+        run_full_incredible_squaring_test().await;
+    }
 
     #[tokio::test]
     async fn test_incredible_squaring_deployment() {
