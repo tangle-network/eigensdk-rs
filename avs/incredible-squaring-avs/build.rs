@@ -19,7 +19,7 @@ fn main() {
         if full_path.exists() {
             println!("cargo:rerun-if-changed={}", full_path.display());
 
-            let status = Command::new("forge")
+            let status = Command::new("/home/tjemmmic/.foundry/bin/forge")
                 .current_dir(&full_path)
                 .arg("build")
                 .status()

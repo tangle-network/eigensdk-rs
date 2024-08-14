@@ -1,3 +1,6 @@
+use super::bn254::{
+    get_g2_generator, map_to_curve, mul_by_generator_g1, point_to_u256, u256_to_point,
+};
 use crate::types::AvsError;
 use alloy_primitives::U256;
 use ark_bn254::Fq as F;
@@ -21,8 +24,6 @@ use std::fmt::Write;
 use std::fs;
 use std::ops::Neg;
 use std::path::Path;
-
-use super::bn254::{map_to_curve, mul_by_generator_g1, point_to_u256, u256_to_point};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct EncryptedBLSKeyJSONV3 {
@@ -356,11 +357,10 @@ impl Signature {
         let p_projective = [g1_point_to_ark_point(&p[0]), g1_point_to_ark_point(&p[1])];
         let q_projective = [g2_point_to_ark_point(&q[0]), g2_point_to_ark_point(&q[1])];
 
-        // // If Pairing Left and Right are equal, then the signature is valid as well
-        // let g2_gen = g2_point_to_ark_point(&G2Point::generator());
-        // let pairing_left = Bn254::pairing(self.g1_point.to_ark_g1(), g2_gen);
-        // let pairing_right = Bn254::pairing(msg_affine, g2_point_to_ark_point(&pubkey.clone()));
-        // println!("Pairing Comparison: {:?}", pairing_left == pairing_right);
+        // If Pairing Left and Right are equal, then the signature is valid as well
+        let e1 = Bn254::pairing(self.g1_point.to_ark_g1(), get_g2_generator().unwrap());
+        let e2 = Bn254::pairing(msg_affine, g2_point_to_ark_point(&pubkey.clone()));
+        log::info!("Are e1 and e2 pairings equal? {:?}", e1 == e2);
 
         let pairing_result = Bn254::multi_pairing(p_projective, q_projective);
         Ok(pairing_result.0.is_one())

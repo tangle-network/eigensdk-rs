@@ -1,7 +1,3 @@
-use alloy_sol_types::abi;
-use alloy_sol_types::abi::Token;
-use sha3::{Digest, Keccak256};
-
 /// Macro that acts as the Rust equivalent of Solidity's `abi.encodeWithSelector`. Returns [alloy_primitives::Bytes]
 #[macro_export]
 macro_rules! encode_params {

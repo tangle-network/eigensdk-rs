@@ -1,7 +1,8 @@
 #![allow(async_fn_in_trait)]
 
 use super::{AvsRegistryContractManager, AvsRegistryContractResult};
-use crate::crypto::bls::{G1Point, KeyPair};
+use crate::crypto::bls::{g1_point_to_ark_point, g1_point_to_g1_projective, G1Point, KeyPair};
+use crate::crypto::bn254::get_g2_generator;
 use crate::crypto::ecdsa::ToAddress;
 use crate::el_contracts::reader::ElReader;
 use crate::{types::*, Config};
@@ -10,6 +11,8 @@ use alloy_provider::Provider;
 use alloy_rpc_types::TransactionReceipt;
 use alloy_signer::k256::ecdsa;
 use alloy_signer::Signer as alloySigner;
+use ark_ec::pairing::Pairing;
+use ark_ec::CurveGroup;
 use eigen_contracts::RegistryCoordinator;
 use eigen_contracts::RegistryCoordinator::SignatureWithSaltAndExpiry;
 use k256::ecdsa::VerifyingKey;
@@ -58,7 +61,6 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         quorum_numbers: Bytes,
         socket: String,
     ) -> AvsRegistryContractResult<TransactionReceipt> {
-        log::info!("Signing Key: {:?}", operator_ecdsa_private_key);
         let operator_addr = operator_ecdsa_private_key.verifying_key().to_address();
         log::info!("Operator address: {:?}", operator_addr);
         let registry_coordinator =
@@ -89,14 +91,21 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             g1_point.y
         );
 
-        let signed_msg = bls_key_pair.sign_hashed_to_curve_message(&g1_point);
+        let signed_msg = bls_key_pair
+            .sign_hashed_to_curve_message(&g1_point)
+            .g1_point;
         let g1_pubkey_bn254 = bls_key_pair.get_pub_key_g1();
         let g2_pubkey_bn254 = bls_key_pair.get_pub_key_g2();
+        log::info!(
+            "SIGNED MESSAGE G1POINT: X: {:?}, Y: {:?}",
+            signed_msg.x,
+            signed_msg.y
+        );
 
         let pubkey_reg_params = RegistryCoordinator::PubkeyRegistrationParams {
             pubkeyRegistrationSignature: RegistryCoordinator::G1Point {
-                X: signed_msg.g1_point.x,
-                Y: signed_msg.g1_point.y,
+                X: signed_msg.x,
+                Y: signed_msg.y,
             },
             pubkeyG1: RegistryCoordinator::G1Point {
                 X: g1_pubkey_bn254.x,
@@ -107,6 +116,22 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
                 Y: g2_pubkey_bn254.y,
             },
         };
+        log::info!(
+            "REGISTRY COORDINATOR G1POINT: X: {:?}, Y: {:?}",
+            pubkey_reg_params.pubkeyRegistrationSignature.X,
+            pubkey_reg_params.pubkeyRegistrationSignature.Y
+        );
+
+        let signature = g1_point_to_g1_projective(&signed_msg);
+        // PAIRING TEST
+        let e1 = ark_bn254::Bn254::pairing(signature.into_affine(), get_g2_generator().unwrap());
+
+        let e2 = ark_bn254::Bn254::pairing(
+            g1_point_to_ark_point(&g1_point),
+            bls_key_pair.get_pub_key_g2().to_ark_g2(),
+        );
+
+        assert_eq!(e1, e2);
 
         // Generate a random salt and 1 hour expiry for the signature
         let mut rng = rand::thread_rng();
@@ -164,12 +189,14 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             expiry: operator_to_avs_registration_sig_expiry,
         };
 
-        let tx = registry_coordinator.registerOperator(
-            quorum_numbers,
-            socket,
-            pubkey_reg_params,
-            operator_signature_with_salt_and_expiry,
-        );
+        let tx = registry_coordinator
+            .registerOperator(
+                quorum_numbers,
+                socket,
+                pubkey_reg_params,
+                operator_signature_with_salt_and_expiry,
+            )
+            .from(operator_addr);
 
         let receipt = tx.send().await?.get_receipt().await.unwrap();
 

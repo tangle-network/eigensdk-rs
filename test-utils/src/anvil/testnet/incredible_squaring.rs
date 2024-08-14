@@ -1,29 +1,15 @@
 use crate::encode_params;
-use alloy::signers::Signer;
-use alloy_primitives::{address, Address, Bytes, Keccak256, Uint, U256};
-use alloy_provider::network::{TransactionBuilder, TxSigner};
+use alloy_primitives::{address, Address, Bytes, Keccak256, U256};
 use alloy_provider::{Provider, ProviderBuilder};
-use alloy_rpc_types_eth::BlockId;
-use alloy_signer_local::PrivateKeySigner;
-use alloy_sol_types::{
-    abi::Encoder,
-    abi::{self, token::*},
-    private::SolTypeValue,
-    SolValue, Word,
-};
-use alloy_transport_ws::WsConnect;
+use alloy_sol_types::{abi, SolValue};
 use anvil::spawn;
-use ark_bn254::{Fq as F, Fr, G1Affine, G2Affine, G2Projective};
 use eigen_contracts::{
     RegistryCoordinator::{OperatorSetParam, StrategyParams},
     *,
 };
-use gadget_common::subxt_signer::bip39::rand_core::OsRng;
 use incredible_squaring_avs::avs::{
     IncredibleSquaringServiceManager, IncredibleSquaringTaskManager,
 };
-use k256::{ecdsa::VerifyingKey, elliptic_curve::SecretKey};
-use std::{path::Path, time::Duration};
 use url::Url;
 
 pub static BLS_PASSWORD: &str = "BLS_PASSWORD";
@@ -46,7 +32,7 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     // Initialize the logger
     let _ = env_logger::try_init();
 
-    let (api, mut handle) = spawn(
+    let (api, handle) = spawn(
         anvil::NodeConfig::test()
             .with_port(8545)
             .with_print_logs(true)
@@ -81,7 +67,7 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     let _gas_price = provider.get_gas_price().await.unwrap();
 
     // Empty address for initial deployment of all contracts
-    let empty_address = Address::default();
+    let _empty_address = Address::default();
 
     // let strategy_manager_addr = address!("Dc64a140Aa3E981100a9becA4E685f962f0cF6C9");
     // let delegation_manager_addr = address!("Cf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9");
@@ -477,7 +463,7 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     for j in 0..number_of_quorums {
         quorums_strategy_params.push(Vec::<StrategyParams>::new());
         quorums_minimum_stake.push(0);
-        for k in 0..number_of_strategies {
+        for _k in 0..number_of_strategies {
             quorums_strategy_params[j].push(StrategyParams {
                 strategy: strategies[j],
                 multiplier: 1,
@@ -488,37 +474,7 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
     // Function with signature initialize(address,address,address,address,uint256,(uint32,uint16,uint16)[],uint96[],(address,uint96)[][]) and selector 0xdd8283f3.
     let function_signature = "initialize(address,address,address,address,uint256,(uint32,uint16,uint16)[],uint96[],(address,uint96)[][])";
 
-    let single_test = 0.tokenize();
-    println!("Word Tokenize: {:?}", single_test);
-    let vec_test = quorum_operator_set_params.tokenize();
-    println!("Vec Tokenize: {:?}", vec_test);
-
-    let encoded_word = abi::encode(&single_test);
-
-    let encoded_vec = abi::encode(&vec_test);
-
-    println!(
-        "Quorums Strategy Params: Strategy: {:?} Multiplier: {:?}",
-        quorums_strategy_params[0][0].strategy, quorums_strategy_params[0][0].multiplier
-    );
-    println!("Quorum Operator Set Params: Max Operators: {:?}, Kick BIPs of Operator Stake: {:?}, Kick BIPs of Total Stake: {:?}", quorum_operator_set_params[0].maxOperatorCount, quorum_operator_set_params[0].kickBIPsOfOperatorStake, quorum_operator_set_params[0].kickBIPsOfTotalStake);
-    println!("Quorums Minimum Stake: {:?}", quorums_minimum_stake);
-
-    // let mut hasher = Keccak256::new();
-    // hasher.update(function_signature);
-    // let function_selector = &hasher.finalize()[..4];
-    // let mut data = Vec::from(function_selector);
-    // data.extend_from_slice(&abi::encode(&pausers[0].tokenize()));
-    // data.extend_from_slice(&abi::encode(&pausers[0].tokenize()));
-    // data.extend_from_slice(&abi::encode(&pausers[0].tokenize()));
-    // data.extend_from_slice(&abi::encode(&pausers[1].tokenize()));
-    // data.extend_from_slice(&abi::encode(&0.tokenize()));
-    // data.extend_from_slice(&abi::encode(&quorum_operator_set_params.tokenize()));
-    // data.extend_from_slice(&abi::encode(&quorums_minimum_stake.tokenize()));
-    // data.extend_from_slice(&abi::encode(&quorums_strategy_params.tokenize()));
-    // let encoded_data = alloy_primitives::Bytes::from(data);
-
-    let encoded_data = encode_params!(
+    let _encoded_data = encode_params!(
         function_signature,
         pausers[0],
         pausers[0],
@@ -529,23 +485,6 @@ pub async fn run_anvil_testnet() -> ContractAddresses {
         quorums_minimum_stake,
         quorums_strategy_params
     );
-    // let registry_coordinator_upgrade = incredible_squaring_proxy_admin
-    //     .upgradeAndCall(
-    //         registry_coordinator_addr,
-    //         registry_coordinator_implementation_addr,
-    //         encoded_data,
-    //     )
-    //     // .from(dev_account)
-    //     .send()
-    //     .await
-    //     .unwrap()
-    //     .get_receipt()
-    //     .await
-    //     .unwrap();
-    // log::info!(
-    //     "Registry Coordinator Upgrade Receipt: {:?}",
-    //     registry_coordinator_upgrade
-    // );
 
     let registry_coordinator_upgrade = incredible_squaring_proxy_admin
         .upgrade(

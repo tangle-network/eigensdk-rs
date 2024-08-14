@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "./eigenlayer-contracts/src/contracts/libraries/BytesLib.sol";
-import "./ITangleValidatorTaskManager.sol";
-import "./eigenlayer-middleware/src/ServiceManagerBase.sol";
+import "eigenlayer-middleware/lib/eigenlayer-contracts/src/contracts/libraries/BytesLib.sol";
+import "src/ITangleValidatorTaskManager.sol";
+import "eigenlayer-middleware/src/ServiceManagerBase.sol";
 
 /**
  * @title Primary entrypoint for procuring services from TangleValidator.
@@ -32,7 +32,6 @@ contract TangleValidatorServiceManager is ServiceManagerBase {
     )
         ServiceManagerBase(
             _avsDirectory,
-            IRewardsCoordinator(address(0)), // inc-sq doesn't need to deal with payments
             _registryCoordinator,
             _stakeRegistry
         )

@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use crate::anvil::testnet::incredible_squaring::*;
 use alloy_provider::Provider;
 use alloy_provider::ProviderBuilder;
@@ -7,6 +8,15 @@ use incredible_squaring_avs::operator::*;
 use k256::ecdsa::SigningKey;
 use k256::elliptic_curve::SecretKey;
 
+#[tokio::main]
+async fn main() {
+    let _ = env_logger::try_init();
+    run_full_incredible_squaring_test().await;
+}
+
+/// THIS FUNCTION IS FOR TESTING ONLY
+///
+/// Runs the Incredible Squaring Testnet and then creates an Operator that connects and registers.
 async fn run_full_incredible_squaring_test() {
     let _ = env_logger::try_init();
 
@@ -70,7 +80,7 @@ async fn run_full_incredible_squaring_test() {
     let operator_info_service = OperatorInfoService {};
 
     let hex_key =
-        hex::decode("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d").unwrap();
+        hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80").unwrap();
     let secret_key = SecretKey::from_slice(&hex_key).unwrap();
     let signing_key = SigningKey::from(secret_key.clone());
     let signer = EigenGadgetSigner {
