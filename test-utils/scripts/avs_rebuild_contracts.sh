@@ -2,7 +2,7 @@
 
 # Define the directories
 DIR1="./../avs/incredible-squaring-avs/contracts"
-DIR2="./../avs/tangle-avs/contract"
+DIR2="./../avs/tangle-avs/contracts"
 
 # Function to run forge commands in a directory
 run_forge_commands() {

@@ -385,6 +385,34 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .unwrap();
     assert!(registry_coordinator_initialization.status());
 
+    let eigen_pod_manager = EigenPodManager::deploy(
+        provider.clone(),
+        empty_contract_addr,
+        empty_contract_addr,
+        strategy_manager_addr,
+        from,
+        delegation_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &eigen_pod_manager_addr = eigen_pod_manager.address();
+
+    let slasher_addr = dev_account;
+    let delegation_manager = DelegationManager::deploy(
+        provider.clone(),
+        strategy_manager_addr,
+        slasher_addr,
+        eigen_pod_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &delegation_manager_addr = delegation_manager.address();
+
+    let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
+        .await
+        .unwrap();
+    let &avs_directory_addr = avs_directory.address();
+
     let incredible_squaring_service_manager_implementation =
         IncredibleSquaringServiceManager::deploy(
             provider.clone(),
@@ -452,34 +480,6 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .await
         .unwrap();
     assert!(incredible_squaring_task_manager_upgrade.status());
-
-    let eigen_pod_manager = EigenPodManager::deploy(
-        provider.clone(),
-        empty_contract_addr,
-        empty_contract_addr,
-        strategy_manager_addr,
-        from,
-        delegation_manager_addr,
-    )
-    .await
-    .unwrap();
-    let &eigen_pod_manager_addr = eigen_pod_manager.address();
-
-    let slasher_addr = dev_account;
-    let delegation_manager = DelegationManager::deploy(
-        provider.clone(),
-        strategy_manager_addr,
-        slasher_addr,
-        eigen_pod_manager_addr,
-    )
-    .await
-    .unwrap();
-    let &delegation_manager_addr = delegation_manager.address();
-
-    let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
-        .await
-        .unwrap();
-    let &avs_directory_addr = avs_directory.address();
 
     log::info!("ERC20MOCK ADDRESS: {:?}", erc20_mock_addr);
     log::info!("ERC20MOCK STRATEGY ADDRESS: {:?}", erc20_mock_strategy_addr);

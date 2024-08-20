@@ -20,6 +20,7 @@ use eigen_utils::avs_registry::writer::AvsRegistryChainWriterTrait;
 use eigen_utils::avs_registry::AvsRegistryContractManager;
 use eigen_utils::crypto::bls::KeyPair;
 use eigen_utils::crypto::ecdsa::ToAddress;
+use eigen_utils::el_contracts::writer::ElWriter;
 use eigen_utils::el_contracts::ElChainContractManager;
 use eigen_utils::node_api::NodeApi;
 use eigen_utils::services::operator_info::OperatorInfoServiceTrait;
@@ -278,6 +279,51 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         .await
         .unwrap();
 
+        let operator_id = avs_registry_contract_manager
+            .get_operator_id(operator_address)
+            .await?;
+
+        log::info!(
+            "Operator info: operatorId={}, operatorAddr={}, operatorG1Pubkey={:?}, operatorG2Pubkey={:?}",
+            hex::encode(operator_id),
+            operator_address,
+            bls_keypair.clone().get_pub_key_g1(),
+            bls_keypair.clone().get_pub_key_g2(),
+        );
+
+        let operator = Operator {
+            config: config.clone(),
+            node_api,
+            avs_registry_contract_manager: avs_registry_contract_manager.clone(),
+            incredible_squaring_contract_manager,
+            eigenlayer_contract_manager: eigenlayer_contract_manager.clone(),
+            bls_keypair,
+            operator_id,
+            operator_addr: operator_address,
+            aggregator_server_ip_port_addr: config.server_ip_port_address.clone(),
+            aggregator_server: aggregator_service,
+            aggregator_rpc_client,
+        };
+
+        // Register Operator with EigenLayer
+        let register_operator = eigen_utils::types::Operator {
+            address: operator_address,
+            earnings_receiver_address: operator_address,
+            delegation_approver_address: Address::from([0u8; 20]),
+            staker_opt_out_window_blocks: 50400u32, // About 7 days in blocks on Ethereum
+            metadata_url: "https://github.com/webb-tools/eigensdk-rs/blob/donovan/eigen/test-utils/metadata.json".to_string(),
+        };
+        let eigenlayer_register_result = eigenlayer_contract_manager
+            .register_as_operator(register_operator)
+            .await
+            .unwrap()
+            .status();
+        log::info!(
+            "Eigenlayer Registration result: {:?}",
+            eigenlayer_register_result
+        );
+
+        // Register Operator with AVS
         let quorum_nums = Bytes::from([0x00]);
         let bls_keypair = KeyPair::new(
             eigen_utils::crypto::bls::PrivateKey::from_str(
@@ -294,46 +340,13 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                 config.eth_rpc_url.clone(),
             )
             .await;
-        log::info!("Register result: {:?}", register_result);
+        log::info!("AVS Registration result: {:?}", register_result);
 
         let answer = avs_registry_contract_manager
             .is_operator_registered(operator_address)
             .await
             .unwrap();
         log::info!("Is operator registered: {:?}", answer);
-
-        let operator_id = avs_registry_contract_manager
-            .get_operator_id(operator_address)
-            .await?;
-
-        log::info!(
-            "Operator info: operatorId={}, operatorAddr={}, operatorG1Pubkey={:?}, operatorG2Pubkey={:?}",
-            hex::encode(operator_id),
-            operator_address,
-            bls_keypair.clone().get_pub_key_g1(),
-            bls_keypair.clone().get_pub_key_g2(),
-        );
-
-        let operator = Operator {
-            config: config.clone(),
-            node_api,
-            avs_registry_contract_manager,
-            incredible_squaring_contract_manager,
-            eigenlayer_contract_manager,
-            bls_keypair,
-            operator_id,
-            operator_addr: operator_address,
-            aggregator_server_ip_port_addr: config.server_ip_port_address.clone(),
-            aggregator_server: aggregator_service,
-            aggregator_rpc_client,
-        };
-
-        // if config.register_operator_on_startup {
-        //     operator.register_operator_on_startup(
-        //         operator_ecdsa_private_key,
-        //         config.token_strategy_addr.parse()?,
-        //     );
-        // }
 
         Ok(operator)
     }
