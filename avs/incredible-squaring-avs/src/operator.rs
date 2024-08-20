@@ -278,7 +278,14 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         .await
         .unwrap();
 
-        let quorum_nums = Bytes::from(vec![0]);
+        let quorum_nums = Bytes::from([0x00]);
+        let bls_keypair = KeyPair::new(
+            eigen_utils::crypto::bls::PrivateKey::from_str(
+                "12248929636257230549931416853095037629726205319386239410403476017439825112537",
+            )
+            .unwrap(),
+        )
+        .unwrap();
         let register_result = avs_registry_contract_manager
             .register_operator(
                 &ecdsa_signing_key,
@@ -358,7 +365,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         log::info!("Received new task: {:?}", value);
 
         loop {
-            log::info!("About to wait for a new task submissions");
+            log::info!("Waiting for new task submissions");
             tokio::select! {
                 Ok(new_task_created_log) = sub.recv() => {
                     log::info!("Received new task: {:?}", new_task_created_log);
@@ -374,6 +381,10 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                 },
             }
         }
+    }
+
+    pub fn config(&self) -> NodeConfig {
+        self.config.clone()
     }
 
     fn process_new_task_created_log(

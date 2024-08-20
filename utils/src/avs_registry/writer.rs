@@ -93,6 +93,8 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
             pubkeyG2: RegistryCoordinator::G2Point {
                 X: g2_pubkey_bn254.x,
                 Y: g2_pubkey_bn254.y,
+                //X: [g2_pubkey_bn254.x[1], g2_pubkey_bn254.x[0]],
+                //Y: [g2_pubkey_bn254.y[1], g2_pubkey_bn254.y[0]],
             },
         };
 

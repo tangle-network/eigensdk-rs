@@ -3,6 +3,9 @@ use alloy_provider::Provider;
 use alloy_provider::ProviderBuilder;
 use alloy_signer_local::PrivateKeySigner;
 use alloy_transport_ws::WsConnect;
+use ethers::prelude::contract;
+use incredible_squaring_avs::aggregator::Aggregator;
+use incredible_squaring_avs::avs::SetupConfig;
 use incredible_squaring_avs::operator::*;
 use k256::ecdsa::SigningKey;
 use k256::elliptic_curve::SecretKey;
@@ -35,7 +38,7 @@ async fn operator_setup(
         operator_address: contract_addresses.operator.to_string(),
         enable_metrics: false,
         enable_node_api: false,
-        server_ip_port_address: "".to_string(),
+        server_ip_port_address: "127.0.0.1:8673".to_string(),
     };
 
     let operator_info_service = OperatorInfoService {};

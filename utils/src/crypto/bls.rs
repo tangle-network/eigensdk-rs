@@ -180,8 +180,8 @@ impl CanonicalDeserialize for G2Point {
 impl G2Point {
     /// Create a new [G2Point] from [Field] components. This is unchecked and will not verify that the point is on the curve.
     pub fn new(x: [F; 2], y: [F; 2]) -> Self {
-        let x = [point_to_u256(x[0]), point_to_u256(x[1])];
-        let y = [point_to_u256(y[0]), point_to_u256(y[1])];
+        let x = [point_to_u256(x[1]), point_to_u256(x[0])];
+        let y = [point_to_u256(y[1]), point_to_u256(y[0])];
         Self { x, y }
     }
 
@@ -279,12 +279,12 @@ pub fn ark_point_to_g1_point(pt: &G1Affine) -> G1Point {
 pub fn g2_point_to_ark_point(pt: &G2Point) -> G2Affine {
     G2Affine::new(
         QuadExtField {
-            c0: u256_to_point(pt.x[0]),
-            c1: u256_to_point(pt.x[1]),
+            c0: u256_to_point(pt.x[1]),
+            c1: u256_to_point(pt.x[0]),
         },
         QuadExtField {
-            c0: u256_to_point(pt.y[0]),
-            c1: u256_to_point(pt.y[1]),
+            c0: u256_to_point(pt.y[1]),
+            c1: u256_to_point(pt.y[0]),
         },
     )
 }
@@ -292,8 +292,8 @@ pub fn g2_point_to_ark_point(pt: &G2Point) -> G2Affine {
 /// Converts a [G2Affine] to a [G2Point].
 pub fn ark_point_to_g2_point(pt: &G2Affine) -> G2Point {
     G2Point {
-        x: [point_to_u256(pt.x.c0), point_to_u256(pt.x.c1)],
-        y: [point_to_u256(pt.y.c0), point_to_u256(pt.y.c1)],
+        x: [point_to_u256(pt.x.c1), point_to_u256(pt.x.c0)],
+        y: [point_to_u256(pt.y.c1), point_to_u256(pt.y.c0)],
     }
 }
 
@@ -349,9 +349,13 @@ impl Signature {
         self.g1_point.add(&other.g1_point);
     }
 
-    pub fn verify(&self, pubkey: &G2Point, message: &[u8; 32]) -> Result<bool, AvsError> {
-        let g2_gen = G2Point::generator();
-        let msg_affine = map_to_curve(message).into_affine();
+    pub fn verify(
+        &self,
+        pubkey: &G2Point,
+        pre_hashed_message: &[u8; 32],
+    ) -> Result<bool, AvsError> {
+        let g2_gen = ark_point_to_g2_point(&get_g2_generator()?);
+        let msg_affine = map_to_curve(pre_hashed_message).into_affine();
         let msg_point = ark_point_to_g1_point(&msg_affine);
         let neg_sig = self.g1_point.neg();
 
@@ -524,22 +528,16 @@ impl KeyPair {
     }
 
     pub fn sign_message(&self, message: &[u8; 32]) -> Signature {
-        let sig_point = map_to_curve(message);
-        let sig = sig_point.mul_bigint(self.priv_key.0);
+        let hashed_point = map_to_curve(message);
+        let sig = hashed_point.mul_bigint(self.priv_key.0);
         Signature {
             g1_point: ark_point_to_g1_point(&sig.into_affine()),
         }
     }
 
     pub fn sign_hashed_to_curve_message(&self, g1_hashed_msg: &G1Point) -> Signature {
-        // let sig_point = g1_point_to_g1_projective(g1_hashed_msg);
-        // let sig = sig_point.mul_bigint(self.priv_key.0);
-        // Signature {
-        //     g1_point: ark_point_to_g1_point(&sig.into_affine()),
-        // }
-        //
-        let sig_point = g1_point_to_ark_point(g1_hashed_msg);
-        let sig = sig_point.mul_bigint(self.priv_key.0);
+        let hashed_point = g1_point_to_ark_point(g1_hashed_msg);
+        let sig = hashed_point.mul_bigint(self.priv_key.0);
         Signature {
             g1_point: ark_point_to_g1_point(&sig.into_affine()),
         }
@@ -561,6 +559,7 @@ impl KeyPair {
 
 #[cfg(test)]
 mod tests {
+    use super::{ark_point_to_g1_point, ark_point_to_g2_point, PrivateKey, U256};
     use crate::crypto::bls::{g1_point_to_g1_projective, G1Point, G2Point, KeyPair};
     use ark_bn254::Fq as F;
     use ark_bn254::{Fr, G1Affine, G1Projective, G2Affine, G2Projective};
@@ -568,6 +567,7 @@ mod tests {
     use ark_ff::UniformRand;
     use ark_ff::{BigInt, Field, One, PrimeField, Zero};
     use rand::{thread_rng, Rng};
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_keypair_generation() {
@@ -664,4 +664,178 @@ mod tests {
         let keypair_from_new = keypair_result_normal.unwrap();
         assert_eq!(keypair_from_new.priv_key, keypair_from_string.priv_key);
     }
+    //
+    // #[tokio::test]
+    // async fn test_convert_to_g1_point() {
+    //     let x_point = F::from_str(
+    //         "17709620697113958145616918533531128159269167719799793368595970620022661612059",
+    //     )
+    //         .unwrap();
+    //     let y_point = F::from_str(
+    //         "9890439522434691655532127414660267222813910180198976870423582442696952349816",
+    //     )
+    //         .unwrap();
+    //     let g1_affine = G1Affine::new(x_point, y_point);
+    //
+    //     let alloy_g1_point = ark_point_to_g1_point(&g1_affine);
+    //     assert_eq!(
+    //         alloy_g1_point.x,
+    //         U256::from_str(
+    //             "17709620697113958145616918533531128159269167719799793368595970620022661612059"
+    //         )
+    //             .unwrap()
+    //     );
+    //     assert_eq!(
+    //         alloy_g1_point.y,
+    //         U256::from_str(
+    //             "9890439522434691655532127414660267222813910180198976870423582442696952349816"
+    //         )
+    //             .unwrap()
+    //     );
+    // }
+    //
+    // #[tokio::test]
+    // async fn test_convert_to_g2_point() {
+    //     let x_point_c0 = F::from_str(
+    //         "6834287759893774453556191528501556195232162436167606874229072410417955767882",
+    //     )
+    //         .unwrap();
+    //     let x_point_c1 = F::from_str(
+    //         "15529400123788596166111036611862227541174221446291015207340396747864347375335",
+    //     )
+    //         .unwrap();
+    //
+    //     let y_point_c0 = F::from_str(
+    //         "7616309349481520605447660298084926776417001188005125143383153219707218450524",
+    //     )
+    //         .unwrap();
+    //     let y_point_c1 = F::from_str(
+    //         "19775028091101520702581412350510183088819198056772055625089714355379667714558",
+    //     )
+    //         .unwrap();
+    //
+    //     let x_point = ark_bn254::Fq2::new(x_point_c0, x_point_c1);
+    //     let y_point = ark_bn254::Fq2::new(y_point_c0, y_point_c1);
+    //
+    //     let g2_affine = G2Affine::new(x_point, y_point);
+    //
+    //     let alloy_g2_point = ark_point_to_g2_point(&g2_affine);
+    //     assert_eq!(
+    //         alloy_g2_point.x[0],
+    //         U256::from_str(
+    //             "15529400123788596166111036611862227541174221446291015207340396747864347375335"
+    //         )
+    //             .unwrap()
+    //     );
+    //     assert_eq!(
+    //         alloy_g2_point.x[1],
+    //         U256::from_str(
+    //             "6834287759893774453556191528501556195232162436167606874229072410417955767882"
+    //         )
+    //             .unwrap()
+    //     );
+    //     assert_eq!(
+    //         alloy_g2_point.y[0],
+    //         U256::from_str(
+    //             "19775028091101520702581412350510183088819198056772055625089714355379667714558"
+    //         )
+    //             .unwrap()
+    //     );
+    //     assert_eq!(
+    //         alloy_g2_point.y[1],
+    //         U256::from_str(
+    //             "7616309349481520605447660298084926776417001188005125143383153219707218450524"
+    //         )
+    //             .unwrap()
+    //     );
+    // }
+    //
+    // #[tokio::test]
+    // async fn test_bls_key_pair() {
+    //     let bls_priv_key =
+    //         "12248929636257230549931416853095037629726205319386239410403476017439825112537";
+    //     let bls_key_pair = KeyPair::new(PrivateKey::from_str(bls_priv_key).unwrap()).unwrap();
+    //
+    //     assert_eq!(
+    //         U256::from_limbs(*bls_key_pair.get_pub_key_g1().x.as_limbs()),
+    //         U256::from_str(
+    //             "277950648056014144722774518899051149098728246263316284984520891067822832300"
+    //         )
+    //             .unwrap()
+    //     );
+    //     assert_eq!(
+    //         U256::from_limbs(*bls_key_pair.get_pub_key_g1().y.as_limbs()),
+    //         U256::from_str(
+    //             "16927236637669640540790285431111034664564710839671197540688155537113438534238"
+    //         )
+    //             .unwrap()
+    //     );
+    // }
+    //
+    // #[test]
+    // fn test_map_to_curve() {
+    //     let message: [u8; 32] = [
+    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+    //         25, 26, 27, 28, 29, 30, 31, 32,
+    //     ];
+    //     let g1 = crate::crypto::bn254::map_to_curve(&message);
+    //
+    //     assert_eq!(
+    //         U256::from_limbs(g1.x.into_bigint().0),
+    //         U256::from_str(
+    //             "455867356320691211509944977504407603390036387149619137164185182714736811811"
+    //         )
+    //             .unwrap()
+    //     );
+    //     assert_eq!(
+    //         U256::from_limbs(g1.y.into_bigint().0),
+    //         U256::from_str(
+    //             "9802125641729881429496664198939823213610051907104384160271670136040620850981"
+    //         )
+    //             .unwrap()
+    //     );
+    // }
+    //
+    // #[test]
+    // fn test_sign_message() {
+    //     let message: [u8; 32] = [
+    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+    //         25, 26, 27, 28, 29, 30, 31, 32,
+    //     ];
+    //     let bls_priv_key =
+    //         "12248929636257230549931416853095037629726205319386239410403476017439825112537";
+    //     let bls_key_pair = KeyPair::new(PrivateKey::from_str(bls_priv_key).unwrap()).unwrap();
+    //
+    //
+    //     let signature = bls_key_pair.sign_message(&message);
+    //     assert_eq!(
+    //         U256::from_limbs(*signature.g1_point.x.as_limbs()),
+    //         U256::from_str(
+    //             "6125087140203962697351933212367898471377426213402772883153680722977416765651"
+    //         )
+    //             .unwrap()
+    //     );
+    //     assert_eq!(
+    //         U256::from_limbs(*signature.g1_point.y.as_limbs()),
+    //         U256::from_str(
+    //             "19120302240465611628345095276448175199636936878728446037184749040811421969742"
+    //         )
+    //             .unwrap()
+    //     );
+    // }
+    //
+    // #[test]
+    // fn test_verify_message() {
+    //     let message: [u8; 32] = [
+    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+    //         25, 26, 27, 28, 29, 30, 31, 32,
+    //     ];
+    //     let bls_priv_key =
+    //         "12248929636257230549931416853095037629726205319386239410403476017439825112537";
+    //     let bls_key_pair = KeyPair::new(PrivateKey::from_str(bls_priv_key).unwrap()).unwrap();
+    //
+    //     let signature = bls_key_pair.sign_message(&message);
+    //
+    //     assert!(signature.verify(&bls_key_pair.get_pub_key_g2(), &message).unwrap())
+    // }
 }

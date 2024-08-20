@@ -52,6 +52,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     let from = accounts[0].address();
 
     let dev_account = accounts[0].address();
+    let task_account = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720"); // This is the last Dev Account `accounts[9]`
 
     // Deploy initial contracts that don't depend on others
 
@@ -94,11 +95,17 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
 
     // Function with signature initialize(uint256,uint256,address,address) and selector 0x019e2729.
     let function_signature = "initialize(uint256,uint256,address,address)";
-    let mut hasher = Keccak256::new();
-    hasher.update(function_signature);
-    let function_selector = &hasher.finalize()[..4];
+    // let mut hasher = Keccak256::new();
+    // hasher.update(function_signature);
+    // let function_selector = &hasher.finalize()[..4];
 
-    let encoded_data = encode_params!(function_selector, 1, 100, ierc20_addr, pauser_registry_addr);
+    let encoded_data = encode_params!(
+        function_signature,
+        1,
+        100,
+        ierc20_addr,
+        pauser_registry_addr
+    );
 
     let strategy_proxy = TransparentUpgradeableProxy::deploy(
         provider.clone(),
@@ -506,35 +513,36 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     );
     log::info!("DELEGATION MANAGER ADDRESS: {:?}", delegation_manager_addr);
 
-    // let spawner_task_manager_address = task_manager_addr.clone();
-    // // let spawner_provider = provider.clone();
-    // let spawner_provider = provider;
-    // let task_spawner = async move {
-    //     let manager = IncredibleSquaringTaskManager::new(
-    //         spawner_task_manager_address,
-    //         spawner_provider.clone(),
-    //     );
-    //     loop {
-    //         api.mine_one().await;
-    //         log::info!("About to create new task");
-    //         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
-    //         let result = manager
-    //             .createNewTask(U256::from(2), 100u32, Bytes::from("0"))
-    //             .send()
-    //             .await
-    //             .unwrap()
-    //             .watch()
-    //             .await
-    //             .unwrap();
-    //         api.mine_one().await;
-    //         log::info!("Created new task: {:?}", result);
-    //         // let latest_task = manager.latestTaskNum().call().await.unwrap()._0;
-    //         // log::info!("Latest task: {:?}", latest_task);
-    //         // let task_hash = manager.allTaskHashes(latest_task).call().await.unwrap()._0;
-    //         // log::info!("Task info: {:?}", task_hash);
-    //     }
-    // };
-    // tokio::spawn(task_spawner);
+    let spawner_task_manager_address = incredible_squaring_task_manager_addr.clone();
+    // let spawner_provider = provider.clone();
+    let spawner_provider = provider.clone();
+    let task_spawner = async move {
+        let manager = IncredibleSquaringTaskManager::new(
+            spawner_task_manager_address,
+            spawner_provider.clone(),
+        );
+        loop {
+            api.mine_one().await;
+            log::info!("About to create new task");
+            tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+            let result = manager
+                .createNewTask(U256::from(2), 100u32, Bytes::from(vec![0]))
+                .from(task_account)
+                .send()
+                .await
+                .unwrap()
+                .watch()
+                .await
+                .unwrap();
+            api.mine_one().await;
+            log::info!("Created new task: {:?}", result);
+            // let latest_task = manager.latestTaskNum().call().await.unwrap()._0;
+            // log::info!("Latest task: {:?}", latest_task);
+            // let task_hash = manager.allTaskHashes(latest_task).call().await.unwrap()._0;
+            // log::info!("Task info: {:?}", task_hash);
+        }
+    };
+    tokio::spawn(task_spawner);
 
     ContractAddresses {
         service_manager: incredible_squaring_service_manager_addr,

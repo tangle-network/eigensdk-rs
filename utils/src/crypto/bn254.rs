@@ -5,6 +5,8 @@ use ark_bn254::{Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::AffineRepr;
 use ark_ff::{BigInteger, BigInteger256};
 use ark_ff::{Field, One, PrimeField};
+use std::ops::Neg;
+use std::str::FromStr;
 
 pub fn map_to_curve(digest: &[u8; 32]) -> G1Projective {
     let one = F::one();
@@ -28,14 +30,14 @@ pub fn map_to_curve(digest: &[u8; 32]) -> G1Projective {
     }
 }
 
-// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
+/// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
 pub fn u256_to_point<F: PrimeField>(point: U256) -> F {
     let le: [u8; 32] = point.to_le_bytes();
     F::from_le_bytes_mod_order(&le[..])
 }
 
-// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
-// (U256 reads data as big endian)
+/// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
+/// (U256 reads data as big endian)
 pub fn point_to_u256<F: PrimeField>(point: F) -> U256 {
     let point = point.into_bigint();
     let point_bytes = point.to_bytes_be();
@@ -75,6 +77,13 @@ pub fn get_g2_generator() -> Result<G2Affine, AvsError> {
     let g2_affine = G2Affine::new(ark_bn254::g2::G2_GENERATOR_X, ark_bn254::g2::G2_GENERATOR_Y);
     // let g2_affine = G2Affine::generator();
     Ok(g2_affine)
+}
+
+pub fn get_g2_generator_neg() -> Result<G2Affine, AvsError> {
+    // let g2_affine = G2Affine::new(ark_bn254::g2::G2_GENERATOR_X, ark_bn254::g2::G2_GENERATOR_Y);
+    // let g2_affine = G2Affine::generator();
+    let g2_gen = get_g2_generator()?;
+    Ok(g2_gen.neg())
 }
 
 pub fn mul_by_generator_g1(pvt_key: Fr) -> Result<G1Projective, AvsError> {
