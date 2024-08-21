@@ -20,12 +20,8 @@ jobs:
     name: Forge
     runs-on: macos-latest
     steps:
-      - name: Check Git Setup
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          which git
-          git --version
-          ls -a
+      - name: Checkout Code
+        uses: actions/checkout@v2
 
       - name: Install Foundry
         run: |
@@ -40,8 +36,7 @@ jobs:
         run: forge --version
 
       - name: Set up Foundry cache
-        run: |
-          forge install
+        run: forge install
 
       - name: Run build script
         run: |
