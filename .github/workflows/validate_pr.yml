@@ -44,6 +44,15 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Print current directory
+        run: pwd
+
+      - name: List files
+        run: ls -al
 
       - name: install rust
         uses: actions-rs/toolchain@v1
