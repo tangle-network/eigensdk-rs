@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Define the directories
-DIR0="./../contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts"
-DIR1="./../contracts/lib/eigenlayer-middleware"
-DIR2="./../contracts"
-DIR3="./../avs/incredible-squaring-avs/contracts"
-DIR4="./../avs/tangle-avs/contracts"
+DIR0="./contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts"
+DIR1="./contracts/lib/eigenlayer-middleware"
+DIR2="./contracts"
+DIR3="./avs/incredible-squaring-avs/contracts"
+DIR4="./avs/tangle-avs/contracts"
 
 # Function to run forge commands in a directory
 run_forge_commands() {

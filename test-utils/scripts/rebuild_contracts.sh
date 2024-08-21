@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the directories
-DIR1="./../contracts/lib/eigenlayer-middleware"
-DIR2="./../contracts"
+DIR1="./contracts/lib/eigenlayer-middleware"
+DIR2="./contracts"
 
 # Function to run forge commands in a directory
 run_forge_commands() {
