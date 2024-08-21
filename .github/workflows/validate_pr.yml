@@ -20,6 +20,9 @@ jobs:
     name: Forge
     runs-on: macos-latest
     steps:
+      - name: Git setup
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Install Foundry
         run: |
           curl -L https://foundry.paradigm.xyz | bash
