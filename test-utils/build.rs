@@ -5,10 +5,11 @@ use std::process::Command;
 fn main() {
     // List of directories containing Solidity contracts
     let contract_dirs = vec![
-        "./../../contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts",
-        "./../../contracts/lib/eigenlayer-middleware",
-        "./../../contracts/",
-        "./contracts",
+        "./../contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts",
+        "./../contracts/lib/eigenlayer-middleware",
+        "./../contracts/",
+        "./../avs/tangle-avs/contracts",
+        "./../avs/incredible-squaring-avs/contracts",
     ];
 
     // Get the project root directory
@@ -20,7 +21,7 @@ fn main() {
         if full_path.exists() {
             println!("cargo:rerun-if-changed={}", full_path.display());
 
-            let status = Command::new("/home/tjemmmic/.foundry/bin/forge")
+            let status = Command::new("forge")
                 .current_dir(&full_path)
                 .arg("build")
                 .status()
