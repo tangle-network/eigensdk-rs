@@ -21,7 +21,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Git setup
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          which git
+          whereis git
 
       - name: Install Foundry
         run: |
