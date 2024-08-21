@@ -20,11 +20,12 @@ jobs:
     name: Forge
     runs-on: macos-latest
     steps:
-      - name: Git setup
+      - name: Check Git Setup
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           which git
-          whereis git
+          git --version
+          ls -a
 
       - name: Install Foundry
         run: |
