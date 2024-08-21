@@ -161,7 +161,7 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         Ok(receipt)
     }
 
-    /// TODO: This function is considered to be deprecated in original Go implementation
+    /// NOTICE: This function is considered to be deprecated in original Go implementation
     async fn register_operator_in_quorum_with_avs_registry_coordinator(
         &self,
         operator_ecdsa_private_key: &ecdsa::SigningKey,

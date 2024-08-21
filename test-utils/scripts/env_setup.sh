@@ -11,7 +11,7 @@ if [ $sourced -eq 0 ]; then
     exit 1
 fi
 
-#Export the environment variables
+# Export the environment variables
 export OPERATOR_ECDSA_KEY_PASSWORD="ECDSA_PASSWORD"
 export OPERATOR_BLS_KEY_PASSWORD="BLS_PASSWORD"
 

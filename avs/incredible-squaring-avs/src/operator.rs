@@ -198,12 +198,6 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         )
         .map_err(OperatorError::from)?;
 
-        let _chain_id = eth_client_http
-            .get_chain_id()
-            .await
-            .map_err(|e| OperatorError::ChainIdError(e.to_string()))?;
-        // TODO: Chain id is not used
-
         log::info!("About to read ECDSA key");
         let ecdsa_key_password =
             std::env::var("OPERATOR_ECDSA_KEY_PASSWORD").unwrap_or_else(|_| "".to_string());
@@ -256,7 +250,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         .await
         .unwrap();
 
-        log::info!("About to build aggregator service");
+        log::info!("Building Aggregator Service...");
         let aggregator_service = Aggregator::build(
             &setup_config,
             operator_info_service,
@@ -265,10 +259,10 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         .await
         .unwrap();
 
-        log::info!("About to build aggregator RPC client");
+        log::info!("Building Aggregator RPC Client...");
         let aggregator_rpc_client = AggregatorRpcClient::new(config.server_ip_port_address.clone());
 
-        log::info!("About to build eigenlayer contract manager");
+        log::info!("Building Eigenlayer Contract Manager...");
         let eigenlayer_contract_manager = ElChainContractManager::build(
             setup_config.delegate_manager_addr,
             setup_config.avs_directory_addr,
@@ -297,7 +291,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             avs_registry_contract_manager: avs_registry_contract_manager.clone(),
             incredible_squaring_contract_manager,
             eigenlayer_contract_manager: eigenlayer_contract_manager.clone(),
-            bls_keypair,
+            bls_keypair: bls_keypair.clone(),
             operator_id,
             operator_addr: operator_address,
             aggregator_server_ip_port_addr: config.server_ip_port_address.clone(),
@@ -325,13 +319,6 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
 
         // Register Operator with AVS
         let quorum_nums = Bytes::from([0x00]);
-        let bls_keypair = KeyPair::new(
-            eigen_utils::crypto::bls::PrivateKey::from_str(
-                "12248929636257230549931416853095037629726205319386239410403476017439825112537",
-            )
-            .unwrap(),
-        )
-        .unwrap();
         let register_result = avs_registry_contract_manager
             .register_operator(
                 &ecdsa_signing_key,
@@ -356,7 +343,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         let operator_is_registered = self
             .avs_registry_contract_manager
             .is_operator_registered(self.operator_addr)
-            .await;
+            .await?;
         log::info!("Operator registration status: {:?}", operator_is_registered);
 
         if self.config.enable_node_api {
@@ -364,15 +351,19 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                 return Err(OperatorError::NodeApiError(e.to_string()));
             }
         }
-
         let mut sub = self
             .incredible_squaring_contract_manager
             .subscribe_to_new_tasks()
             .await
             .unwrap();
 
+        let server = self.aggregator_server.clone();
+        let aggregator_server = async move {
+            server.start_server().await.unwrap();
+        };
+        tokio::spawn(aggregator_server);
+
         log::info!("Subscribed to new tasks: {:?}", sub);
-        log::info!("Raw Subscription: {:?}", sub.inner());
 
         let value = sub.recv().await.unwrap();
         log::info!("Received new task: {:?}", value);
@@ -385,7 +376,9 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                     // self.metrics.inc_num_tasks_received();
                     let log: Log<IncredibleSquaringTaskManager::NewTaskCreated> = new_task_created_log.log_decode().unwrap();
                     let task_response = self.process_new_task_created_log(&log);
+                    log::info!("Generated Task Response: {:?}", task_response);
                     if let Ok(signed_task_response) = self.sign_task_response(&task_response) {
+                        log::info!("Sending signed task response to aggregator: {:?}", signed_task_response);
                         let agg_rpc_client = self.aggregator_rpc_client.clone();
                         tokio::spawn(async move {
                             agg_rpc_client.send_signed_task_response_to_aggregator(signed_task_response).await;

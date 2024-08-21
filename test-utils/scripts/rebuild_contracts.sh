@@ -18,8 +18,4 @@ run_forge_commands() {
 run_forge_commands "$DIR1"
 run_forge_commands "$DIR2"
 
-# Run cargo test in the starting directory
-#echo "Running cargo test in the current directory"
-#cargo test
-
 echo "Rebuilt all Smart Contracts!"

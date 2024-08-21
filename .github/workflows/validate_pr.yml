@@ -25,6 +25,7 @@ jobs:
           curl -L https://foundry.paradigm.xyz | bash
           source /Users/runner/.bashrc
           foundryup
+          forge --version
 
       - name: Verify Forge installation
         run: forge --version

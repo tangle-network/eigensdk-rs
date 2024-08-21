@@ -559,7 +559,6 @@ impl KeyPair {
 
 #[cfg(test)]
 mod tests {
-    use super::{ark_point_to_g1_point, ark_point_to_g2_point, PrivateKey, U256};
     use crate::crypto::bls::{g1_point_to_g1_projective, G1Point, G2Point, KeyPair};
     use ark_bn254::Fq as F;
     use ark_bn254::{Fr, G1Affine, G1Projective, G2Affine, G2Projective};
@@ -567,7 +566,6 @@ mod tests {
     use ark_ff::UniformRand;
     use ark_ff::{BigInt, Field, One, PrimeField, Zero};
     use rand::{thread_rng, Rng};
-    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_keypair_generation() {

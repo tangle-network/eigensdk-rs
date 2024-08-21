@@ -39,7 +39,6 @@ use tokio::{
 // Constants
 pub const TASK_CHALLENGE_WINDOW_BLOCK: u64 = 100;
 pub const BLOCK_TIME_SECONDS: u64 = 12;
-
 pub const QUORUM_THRESHOLD_NUMERATOR: u8 = 100;
 pub const QUORUM_THRESHOLD_DENOMINATOR: u8 = 100;
 pub const QUERY_FILTER_FROM_BLOCK: u64 = 1;
@@ -264,6 +263,12 @@ where
         let task_response_digest = get_task_response_digest(&task_response);
         let task_response_digest_u256 = U256::from_le_bytes(task_response_digest.0);
 
+        log::info!(
+            "Aggregator received task response: \n\tTask Index: {:?}\n\tResult: {:?}",
+            task_response.referenceTaskIndex,
+            task_response.numberSquared
+        );
+
         {
             let mut task_responses = self.task_responses.write().await;
             task_responses
@@ -289,45 +294,17 @@ where
         ))))
     }
 
-    // async fn start_server(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    //     let listener = TcpListener::bind(self.server_ip_port_addr.clone())
-    //         .await
-    //         .unwrap();
-    //     log::info!("Starting server at {}", self.server_ip_port_addr);
-    //     loop {
-    //         let (stream, _) = listener.accept().await.unwrap();
-    //         let io = TokioIo::new(stream);
-    //         let aggregator = Arc::new(self.clone());
-    //         tokio::task::spawn(async move {
-    //             if let Err(err) = http1::Builder::new()
-    //                 .serve_connection(
-    //                     io,
-    //                     service_fn(move |req| {
-    //                         let aggregator = Arc::clone(&aggregator);
-    //                         async move {
-    //                             match req.uri().path() {
-    //                                 "/process_signed_task_response" => {
-    //                                     aggregator.process_signed_task_response(req).await
-    //                                 }
-    //                                 _ => Ok(Response::new(Full::new(Bytes::from("404 Not Found")))),
-    //                             }
-    //                         }
-    //                     }),
-    //                 )
-    //                 .await
-    //             {
-    //                 println!("Error serving connection: {:?}", err);
-    //             }
-    //         });
-    //     }
-    // }
-
     pub async fn start_server(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let listener = TcpListener::bind(&self.server_ip_port_addr).await?;
         loop {
+            log::info!(
+                "Aggregator server listening on {}",
+                self.server_ip_port_addr
+            );
             let (stream, _) = listener.accept().await.unwrap();
             let io = TokioIo::new(stream);
             let this = Arc::new(self.clone());
+            log::info!("Aggregator serving connection...");
             tokio::task::spawn(async move {
                 if let Err(err) = http1::Builder::new()
                     .serve_connection(
@@ -339,7 +316,7 @@ where
                     )
                     .await
                 {
-                    println!("Error serving connection: {:?}", err);
+                    log::info!("Error serving connection: {:?}", err);
                 }
             });
         }
@@ -349,8 +326,9 @@ where
         &self,
         req: Request<body::Incoming>,
     ) -> Result<Response<Full<Bytes>>, Infallible> {
+        log::info!("Routing Request: {:?}", req);
         match (req.method(), req.uri().path()) {
-            (&Method::POST, "/process_signed_task_response") => {
+            (&Method::POST, "/Aggregator.ProcessSignedTaskResponse") => {
                 let _ = self.process_signed_task_response(req).await;
                 Ok(Response::builder()
                     .status(StatusCode::OK)

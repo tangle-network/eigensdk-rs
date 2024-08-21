@@ -3,7 +3,6 @@ use alloy_primitives::{address, Address, Bytes, Keccak256, U256};
 use alloy_provider::ProviderBuilder;
 use alloy_sol_types::{abi, SolValue};
 use anvil::spawn;
-use eigen_contracts::EigenPod::EigenPodCalls::{eigenPodManager, ethPOS};
 use eigen_contracts::{
     RegistryCoordinator::{OperatorSetParam, StrategyParams},
     *,
@@ -58,13 +57,13 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     // Deploy initial contracts that don't depend on others
 
     let istrategy_manager = IStrategyManager::deploy(provider.clone()).await.unwrap();
-    let &strategy_manager_addr = istrategy_manager.address();
+    let &_strategy_manager_addr = istrategy_manager.address();
 
     let idelegation_manager = IDelegationManager::deploy(provider.clone()).await.unwrap();
     let &delegation_manager_addr = idelegation_manager.address();
 
     let iavs_directory = IAVSDirectory::deploy(provider.clone()).await.unwrap();
-    let &avs_directory_addr = iavs_directory.address();
+    let &_avs_directory_addr = iavs_directory.address();
 
     let proxy_admin = ProxyAdmin::deploy_builder(provider.clone())
         .from(dev_account)
@@ -254,6 +253,83 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .unwrap();
     let &operator_state_retriever_addr = operator_state_retriever.address();
 
+    let eth_pos = IETHPOSDeposit::deploy(provider.clone()).await.unwrap();
+    let &eth_pos_addr = eth_pos.address();
+
+    let eigen_pod_beacon = IBeacon::deploy(provider.clone()).await.unwrap();
+    let &eigen_pod_beacon_addr = eigen_pod_beacon.address();
+
+    let strategy_manager = StrategyManager::new(
+        *TransparentUpgradeableProxy::deploy(
+            provider.clone(),
+            empty_contract_addr,
+            incredible_squaring_proxy_admin_addr,
+            Bytes::from(""),
+        )
+        .await
+        .unwrap()
+        .address(),
+        provider.clone(),
+    );
+    let &strategy_manager_addr = strategy_manager.address();
+
+    let eigen_pod_manager = EigenPodManager::deploy(
+        provider.clone(),
+        eth_pos_addr,
+        eigen_pod_beacon_addr,
+        strategy_manager_addr,
+        from,
+        delegation_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &eigen_pod_manager_addr = eigen_pod_manager.address();
+
+    let slasher_addr = dev_account;
+    let delegation_manager = DelegationManager::deploy(
+        provider.clone(),
+        strategy_manager_addr,
+        slasher_addr,
+        eigen_pod_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &delegation_manager_addr = delegation_manager.address();
+
+    let strategy_manager_implementation = StrategyManager::deploy(
+        provider.clone(),
+        delegation_manager_addr,
+        eigen_pod_manager_addr,
+        slasher_addr,
+    )
+    .await
+    .unwrap();
+    let &strategy_manager_implementation_addr = strategy_manager_implementation.address();
+    let strategy_manager_upgrade = incredible_squaring_proxy_admin
+        .upgrade(strategy_manager_addr, strategy_manager_implementation_addr)
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+    assert!(strategy_manager_upgrade.status());
+
+    let strategy_manager_initialization = strategy_manager
+        .initialize(pausers[0], pausers[0], pauser_registry_addr, U256::from(0))
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+    assert!(strategy_manager_initialization.status());
+
+    let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
+        .await
+        .unwrap();
+    let &avs_directory_addr = avs_directory.address();
+
     //Now, deploy the implementation contracts using the proxy contracts as inputs
     let stake_registry_implementation = StakeRegistry::deploy(
         provider.clone(),
@@ -386,83 +462,6 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .unwrap();
     assert!(registry_coordinator_initialization.status());
 
-    let eth_pos = IETHPOSDeposit::deploy(provider.clone()).await.unwrap();
-    let &eth_pos_addr = eth_pos.address();
-
-    let eigen_pod_beacon = IBeacon::deploy(provider.clone()).await.unwrap();
-    let &eigen_pod_beacon_addr = eigen_pod_beacon.address();
-
-    let strategy_manager = StrategyManager::new(
-        *TransparentUpgradeableProxy::deploy(
-            provider.clone(),
-            empty_contract_addr,
-            incredible_squaring_proxy_admin_addr,
-            Bytes::from(""),
-        )
-        .await
-        .unwrap()
-        .address(),
-        provider.clone(),
-    );
-    let &strategy_manager_addr = strategy_manager.address();
-
-    let eigen_pod_manager = EigenPodManager::deploy(
-        provider.clone(),
-        eth_pos_addr,
-        eigen_pod_beacon_addr,
-        strategy_manager_addr,
-        from,
-        delegation_manager_addr,
-    )
-    .await
-    .unwrap();
-    let &eigen_pod_manager_addr = eigen_pod_manager.address();
-
-    let slasher_addr = dev_account;
-    let delegation_manager = DelegationManager::deploy(
-        provider.clone(),
-        strategy_manager_addr,
-        slasher_addr,
-        eigen_pod_manager_addr,
-    )
-    .await
-    .unwrap();
-    let &delegation_manager_addr = delegation_manager.address();
-
-    let strategy_manager_implementation = StrategyManager::deploy(
-        provider.clone(),
-        delegation_manager_addr,
-        eigen_pod_manager_addr,
-        slasher_addr,
-    )
-    .await
-    .unwrap();
-    let &strategy_manager_implementation_addr = strategy_manager_implementation.address();
-    let strategy_manager_upgrade = incredible_squaring_proxy_admin
-        .upgrade(strategy_manager_addr, strategy_manager_implementation_addr)
-        .send()
-        .await
-        .unwrap()
-        .get_receipt()
-        .await
-        .unwrap();
-    assert!(strategy_manager_upgrade.status());
-
-    let strategy_manager_initialization = strategy_manager
-        .initialize(pausers[0], pausers[0], pauser_registry_addr, U256::from(0))
-        .send()
-        .await
-        .unwrap()
-        .get_receipt()
-        .await
-        .unwrap();
-    assert!(strategy_manager_initialization.status());
-
-    let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
-        .await
-        .unwrap();
-    let &avs_directory_addr = avs_directory.address();
-
     let incredible_squaring_service_manager_implementation =
         IncredibleSquaringServiceManager::deploy(
             provider.clone(),
@@ -563,8 +562,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     );
     log::info!("DELEGATION MANAGER ADDRESS: {:?}", delegation_manager_addr);
 
-    let spawner_task_manager_address = incredible_squaring_task_manager_addr.clone();
-    // let spawner_provider = provider.clone();
+    let spawner_task_manager_address = incredible_squaring_task_manager_addr;
     let spawner_provider = provider.clone();
     let task_spawner = async move {
         let manager = IncredibleSquaringTaskManager::new(
@@ -573,7 +571,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         );
         loop {
             api.mine_one().await;
-            log::info!("About to create new task");
+            log::info!("Task Spawner: Submitting a new task...");
             tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
             let result = manager
                 .createNewTask(U256::from(2), 100u32, Bytes::from(vec![0]))
@@ -585,11 +583,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
                 .await
                 .unwrap();
             api.mine_one().await;
-            log::info!("Created new task: {:?}", result);
-            // let latest_task = manager.latestTaskNum().call().await.unwrap()._0;
-            // log::info!("Latest task: {:?}", latest_task);
-            // let task_hash = manager.allTaskHashes(latest_task).call().await.unwrap()._0;
-            // log::info!("Task info: {:?}", task_hash);
+            log::info!("Task Spawner: New task created: {:?}", result);
         }
     };
     tokio::spawn(task_spawner);
