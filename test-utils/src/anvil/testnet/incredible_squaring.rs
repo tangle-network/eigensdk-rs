@@ -3,6 +3,7 @@ use alloy_primitives::{address, Address, Bytes, Keccak256, U256};
 use alloy_provider::ProviderBuilder;
 use alloy_sol_types::{abi, SolValue};
 use anvil::spawn;
+use eigen_contracts::EigenPod::EigenPodCalls::{eigenPodManager, ethPOS};
 use eigen_contracts::{
     RegistryCoordinator::{OperatorSetParam, StrategyParams},
     *,
@@ -220,7 +221,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     );
     let &bls_apk_registry_addr = bls_apk_registry.address();
 
-    let index_registry = IIndexRegistry::new(
+    let index_registry = IndexRegistry::new(
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
@@ -234,7 +235,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     );
     let &index_registry_addr = index_registry.address();
 
-    let stake_registry = IStakeRegistry::new(
+    let stake_registry = StakeRegistry::new(
         *TransparentUpgradeableProxy::deploy(
             provider.clone(),
             empty_contract_addr,
@@ -371,7 +372,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
             pausers[0],
             pausers[0],
             pausers[0],
-            pausers[1],
+            pauser_registry_addr,
             U256::from(0),
             quorum_operator_set_params,
             quorums_minimum_stake,
@@ -385,10 +386,30 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         .unwrap();
     assert!(registry_coordinator_initialization.status());
 
+    let eth_pos = IETHPOSDeposit::deploy(provider.clone()).await.unwrap();
+    let &eth_pos_addr = eth_pos.address();
+
+    let eigen_pod_beacon = IBeacon::deploy(provider.clone()).await.unwrap();
+    let &eigen_pod_beacon_addr = eigen_pod_beacon.address();
+
+    let strategy_manager = StrategyManager::new(
+        *TransparentUpgradeableProxy::deploy(
+            provider.clone(),
+            empty_contract_addr,
+            incredible_squaring_proxy_admin_addr,
+            Bytes::from(""),
+        )
+        .await
+        .unwrap()
+        .address(),
+        provider.clone(),
+    );
+    let &strategy_manager_addr = strategy_manager.address();
+
     let eigen_pod_manager = EigenPodManager::deploy(
         provider.clone(),
-        empty_contract_addr,
-        empty_contract_addr,
+        eth_pos_addr,
+        eigen_pod_beacon_addr,
         strategy_manager_addr,
         from,
         delegation_manager_addr,
@@ -407,6 +428,35 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     .await
     .unwrap();
     let &delegation_manager_addr = delegation_manager.address();
+
+    let strategy_manager_implementation = StrategyManager::deploy(
+        provider.clone(),
+        delegation_manager_addr,
+        eigen_pod_manager_addr,
+        slasher_addr,
+    )
+    .await
+    .unwrap();
+    let &strategy_manager_implementation_addr = strategy_manager_implementation.address();
+    let strategy_manager_upgrade = incredible_squaring_proxy_admin
+        .upgrade(strategy_manager_addr, strategy_manager_implementation_addr)
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+    assert!(strategy_manager_upgrade.status());
+
+    let strategy_manager_initialization = strategy_manager
+        .initialize(pausers[0], pausers[0], pauser_registry_addr, U256::from(0))
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+    assert!(strategy_manager_initialization.status());
 
     let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
         .await

@@ -44,6 +44,7 @@ impl<T: Config> ElWriter for ElChainContractManager<T> {
             DelegationManager::new(self.delegation_manager_addr, self.eth_client_http.clone());
         let receipt = delegation_manager
             .registerAsOperator(op_details, operator.metadata_url)
+            .from(operator.address)
             .send()
             .await?
             .get_receipt()

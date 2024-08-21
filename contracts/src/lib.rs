@@ -204,3 +204,17 @@ sol!(
     EIP1271SignatureUtils,
     "./out/EIP1271SignatureUtils.sol/EIP1271SignatureUtils.json"
 );
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    IETHPOSDeposit,
+    "./out/IETHPOSDeposit.sol/IETHPOSDeposit.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    IBeacon,
+    "./out/IBeacon.sol/IBeacon.json"
+);
