@@ -5,9 +5,9 @@ use std::process::Command;
 fn main() {
     // List of directories containing Solidity contracts
     let contract_dirs = vec![
-        "./../../contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts",
-        "./../../contracts/lib/eigenlayer-middleware",
-        "./../../contracts/",
+        // "./../../contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts",
+        // "./../../contracts/lib/eigenlayer-middleware",
+        // "./../../contracts/",
         "./contracts",
     ];
 
