@@ -118,6 +118,9 @@ jobs:
           export LIBRARY_PATH=$LIBRARY_PATH:/opt/homebrew/lib
           export INCLUDE_PATH=$INCLUDE_PATH:/opt/homebrew/include
 
+      - name: Cargo Check and Build Scripts
+        run: cargo check
+
       - name: install cargo-nextest
         run: cargo install cargo-nextest --locked
 
