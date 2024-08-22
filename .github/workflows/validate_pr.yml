@@ -82,12 +82,14 @@ jobs:
   testing:
     timeout-minutes: 90
     name: Cargo Test
-    if: false # temporarily disabled
     runs-on: macos-14
     strategy:
       matrix:
         package: [
-          eigensdk-rs,
+          test-utils,
+          tangle-avs,
+          incredible-squaring-avs,
+          eigen-utils,
         ]
     steps:
       - name: checkout code
@@ -111,4 +113,4 @@ jobs:
         run: cargo install cargo-nextest --locked
 
       - name: tests
-        run: cargo nextest run --release --nocapture --package ${{ matrix.package }}
+        run: cargo nextest run --release --test-threads 1 --package ${{ matrix.package }}
