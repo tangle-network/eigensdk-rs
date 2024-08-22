@@ -10,8 +10,8 @@ use std::{
     marker::PhantomData,
 };
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
+// #[cfg(feature = "parallel")]
+// use rayon::prelude::*;
 
 pub type Error = Box<dyn ErrorTrait>;
 
@@ -88,9 +88,9 @@ pub fn cfg_multi_pairing<P: Pairing>(left: &[P::G1], right: &[P::G2]) -> Option<
         .collect::<Vec<_>>();
 
     // We want to process N chunks in parallel where N is the number of threads available
-    #[cfg(feature = "parallel")]
-    let num_chunks = rayon::current_num_threads();
-    #[cfg(not(feature = "parallel"))]
+    // #[cfg(feature = "parallel")]
+    // let num_chunks = rayon::current_num_threads();
+    // #[cfg(not(feature = "parallel"))]
     let num_chunks = 1;
 
     let chunk_size = if num_chunks <= left.len() {
@@ -100,9 +100,9 @@ pub fn cfg_multi_pairing<P: Pairing>(left: &[P::G1], right: &[P::G2]) -> Option<
         1
     };
 
-    #[cfg(feature = "parallel")]
-    let (left_chunks, right_chunks) = (left.par_chunks(chunk_size), right.par_chunks(chunk_size));
-    #[cfg(not(feature = "parallel"))]
+    // #[cfg(feature = "parallel")]
+    // let (left_chunks, right_chunks) = (left.par_chunks(chunk_size), right.par_chunks(chunk_size));
+    // #[cfg(not(feature = "parallel"))]
     let (left_chunks, right_chunks) = (left.chunks(chunk_size), right.chunks(chunk_size));
 
     // Compute all the (partial) pairings and take the product. We have to take the product over

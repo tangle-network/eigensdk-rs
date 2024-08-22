@@ -2,11 +2,8 @@ use crate::types::*;
 use crate::Config;
 
 use alloy_primitives::{Address, U256};
-
 use alloy_rpc_types::TransactionReceipt;
-
 use async_trait::async_trait;
-
 use eigen_contracts::DelegationManager;
 use eigen_contracts::StrategyManager;
 
@@ -47,6 +44,7 @@ impl<T: Config> ElWriter for ElChainContractManager<T> {
             DelegationManager::new(self.delegation_manager_addr, self.eth_client_http.clone());
         let receipt = delegation_manager
             .registerAsOperator(op_details, operator.metadata_url)
+            .from(operator.address)
             .send()
             .await?
             .get_receipt()

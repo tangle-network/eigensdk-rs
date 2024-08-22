@@ -1,26 +1,13 @@
-use crate::test_utils;
 use ethers::core::k256::{
     ecdsa::SigningKey, elliptic_curve::generic_array::GenericArray, SecretKey,
 };
-use ethers::{
-    types::{Address, Chain},
-    utils::secret_key_to_address,
-};
+use ethers::{types::Address, utils::secret_key_to_address};
 use std::{
     io::{BufRead, BufReader},
     path::PathBuf,
     process::{Child, Command},
     time::{Duration, Instant},
 };
-// use webb::evm::ethers::core::k256::{
-//     ecdsa::SigningKey, elliptic_curve::generic_array::GenericArray,
-//     SecretKey as K256SecretKey,
-// };
-
-// use webb::evm::ethers::{
-//     types::{Address, Chain},
-//     utils::secret_key_to_address,
-// };
 
 /// How long we will wait for anvil to indicate that it is ready.
 const ANVIL_STARTUP_TIMEOUT_MILLIS: u64 = 10_000;
@@ -54,7 +41,7 @@ impl AnvilInstance {
 
     /// Returns the chain of the anvil instance
     pub fn chain_id(&self) -> u64 {
-        self.chain_id.unwrap_or_else(|| 0u64)
+        self.chain_id.unwrap_or(0u64)
     }
 
     /// Returns the HTTP endpoint of this instance
@@ -94,22 +81,6 @@ impl Drop for AnvilInstance {
 /// # Panics
 ///
 /// If `spawn` is called without `anvil` being available in the user's $PATH
-///
-/// # Example
-///
-/// ```no_run
-/// use eigen_utils::test_utils::anvil::Anvil;
-///
-/// let port = 8545u16;
-/// let url = format!("http://localhost:{}", port).to_string();
-///
-/// let anvil = Anvil::new()
-///     .port(port)
-///     .mnemonic("abstract vacuum mammal awkward pudding scene penalty purchase dinner depart evoke puzzle")
-///     .spawn();
-///
-/// drop(anvil); // this will kill the instance
-/// ```
 #[derive(Debug, Clone, Default)]
 #[must_use = "This Builder struct does nothing unless it is `spawn`ed"]
 pub struct Anvil {
@@ -127,33 +98,11 @@ pub struct Anvil {
 impl Anvil {
     /// Creates an empty Anvil builder.
     /// The default port is 8545. The mnemonic is chosen randomly.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use eigen_utils::test_utils::anvil::Anvil;
-    /// fn a() {
-    ///  let anvil = Anvil::default().spawn();
-    ///
-    ///  println!("Anvil running at `{}`", anvil.endpoint());
-    /// }
-    /// ```
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Creates an Anvil builder which will execute `anvil` at the given path.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use eigen_utils::test_utils::anvil::Anvil;
-    /// fn a() {
-    ///  let anvil = Anvil::at("~/.foundry/bin/anvil").spawn();
-    ///
-    ///  println!("Anvil running at `{}`", anvil.endpoint());
-    /// }
-    /// ```
     pub fn at(path: impl Into<PathBuf>) -> Self {
         Self::new().path(path)
     }
@@ -253,7 +202,7 @@ impl Anvil {
         let port = if let Some(port) = self.port {
             port
         } else {
-            test_utils::random_port::random_port()
+            crate::anvil::random_port::random_port()
         };
         cmd.arg("-p").arg(port.to_string());
 
@@ -360,7 +309,7 @@ mod tests {
 
     #[test]
     fn assert_chain_id_without_rpc() {
-        let anvil = Anvil::new().spawn();
+        let anvil = Anvil::new().chain_id(31337u64).spawn();
         assert_eq!(anvil.chain_id(), 31337);
     }
 }

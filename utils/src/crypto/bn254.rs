@@ -1,12 +1,11 @@
 use crate::types::AvsError;
 use alloy_primitives::U256;
-use ark_bn254::{Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_bn254::Fq as F;
+use ark_bn254::{Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_ec::AffineRepr;
 use ark_ff::{BigInteger, BigInteger256};
 use ark_ff::{Field, One, PrimeField};
-use std::ops::Mul;
-use std::str::FromStr;
-
-use ark_bn254::Fq as F;
+use std::ops::Neg;
 
 pub fn map_to_curve(digest: &[u8; 32]) -> G1Projective {
     let one = F::one();
@@ -30,14 +29,14 @@ pub fn map_to_curve(digest: &[u8; 32]) -> G1Projective {
     }
 }
 
-// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
+/// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
 pub fn u256_to_point<F: PrimeField>(point: U256) -> F {
     let le: [u8; 32] = point.to_le_bytes();
     F::from_le_bytes_mod_order(&le[..])
 }
 
-// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
-// (U256 reads data as big endian)
+/// Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
+/// (U256 reads data as big endian)
 pub fn point_to_u256<F: PrimeField>(point: F) -> U256 {
     let point = point.into_bigint();
     let point_bytes = point.to_bytes_be();
@@ -68,62 +67,18 @@ pub fn biginteger256_to_u256(bi: BigInteger256) -> U256 {
 }
 
 pub fn get_g1_generator() -> Result<G1Affine, AvsError> {
-    let x_result = F::from_str("1");
-
-    let y_result = F::from_str("2");
-
-    match x_result {
-        Ok(x) => match y_result {
-            Ok(y) => Ok(G1Affine::new(x, y)),
-            Err(_) => Err(AvsError::KeyError(
-                "Invalid G1 Generator Y Result".to_string(),
-            )),
-        },
-        Err(_) => Err(AvsError::KeyError(
-            "Invalid G1 Generator X Result".to_string(),
-        )),
-    }
+    let g1_affine = G1Affine::new(ark_bn254::g1::G1_GENERATOR_X, ark_bn254::g1::G1_GENERATOR_Y);
+    Ok(g1_affine)
 }
 
 pub fn get_g2_generator() -> Result<G2Affine, AvsError> {
-    let x_0_result = F::from_str(
-        "10857046999023057135944570762232829481370756359578518086990519993285655852781",
-    );
+    let g2_affine = G2Affine::new(ark_bn254::g2::G2_GENERATOR_X, ark_bn254::g2::G2_GENERATOR_Y);
+    Ok(g2_affine)
+}
 
-    let x_1result = F::from_str(
-        "11559732032986387107991004021392285783925812861821192530917403151452391805634",
-    );
-
-    match x_0_result {
-        Ok(x_0) => {
-            match x_1result {
-                Ok(x_1) => {
-                    let x = Fq2::new(x_0, x_1);
-
-                    let y_0_result = F::from_str("8495653923123431417604973247489272438418190587263600148770280649306958101930");
-
-                    match y_0_result {
-                        Ok(y_0) => {
-                            let y_1_result = F::from_str("4082367875863433681332203403145435568316851327593401208105741076214120093531");
-
-                            match y_1_result {
-                                Ok(y_1) => {
-                                    let y = Fq2::new(y_0, y_1);
-                                    Ok(G2Affine::new(x, y))
-                                }
-                                Err(_) => {
-                                    Err(AvsError::KeyError("Invalid G2 Generator Y1".to_string()))
-                                }
-                            }
-                        }
-                        Err(_) => Err(AvsError::KeyError("Invalid G2 Generator Y0".to_string())),
-                    }
-                }
-                Err(_) => Err(AvsError::KeyError("Invalid G2 Generator X1".to_string())),
-            }
-        }
-        Err(_) => Err(AvsError::KeyError("Invalid G2 Generator X0".to_string())),
-    }
+pub fn get_g2_generator_neg() -> Result<G2Affine, AvsError> {
+    let g2_gen = get_g2_generator()?;
+    Ok(g2_gen.neg())
 }
 
 pub fn mul_by_generator_g1(pvt_key: Fr) -> Result<G1Projective, AvsError> {
@@ -131,8 +86,8 @@ pub fn mul_by_generator_g1(pvt_key: Fr) -> Result<G1Projective, AvsError> {
 
     match g1_gen_result {
         Ok(g1_gen) => {
-            let s: G1Projective = g1_gen.into();
-            Ok(s.mul(pvt_key))
+            // let s: G1Projective = g1_gen.into();
+            Ok(g1_gen.mul_bigint(pvt_key.0))
         }
         Err(_) => Err(AvsError::KeyError(
             "Invalid G1 Generator Result".to_string(),
@@ -144,10 +99,7 @@ pub fn mul_by_generator_g2(pvt_key: Fr) -> Result<G2Projective, AvsError> {
     let g2_gen_result = get_g2_generator();
 
     match g2_gen_result {
-        Ok(g2_gen) => {
-            let s: G2Projective = g2_gen.into();
-            Ok(s.mul(pvt_key))
-        }
+        Ok(g2_gen) => Ok(g2_gen.mul_bigint(pvt_key.0)),
         Err(_) => Err(AvsError::KeyError(
             "Invalid G2 Generator Result".to_string(),
         )),

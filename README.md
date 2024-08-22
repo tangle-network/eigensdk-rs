@@ -2,11 +2,9 @@
 
 [![Validate PR](https://github.com/webb-tools/eigensdk-rs/actions/workflows/validate_pr.yml/badge.svg)](https://github.com/webb-tools/eigensdk-rs/actions/workflows/validate_pr.yml)
 [![Rust Version](https://img.shields.io/badge/rust-1.74.0%2B-blue.svg)](https://www.rust-lang.org)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 ---
-
-[//]: # ([![License]&#40;https://img.shields.io/badge/License-MIT-blue.svg&#41;]&#40;https://opensource.org/licenses/Apache-2.0&#41;)
-
-[//]: # (---)
 
 `eigensdk-rs` is a Rust SDK for interacting with Eigenlayer and building AVS tooling. Additionally, it incorporates features for interacting with Tangle and utilizing our [gadget](https://github.com/webb-tools/gadget), an augmented SDK for building task based AVS. Together, these two offer a comprehensive solution for building applications with both Eigenlayer and Tangle. This SDK is a high-performance, reliable, and efficient library that integrates seamlessly with Eigenlayer's ecosystem while leveraging the many advantages of Rust.
 
@@ -17,14 +15,15 @@ It should be noted that this SDK is still being actively developed and has not u
 - [**Features**](#features)
 - [**Getting** Started](#getting-started)
     - [**Installation**](#installation)
-    - [**Running an AVS**](#running-an-avs)
+- [**Building**](#building)
+- [**Usage**](#usage)
+  - [**Running an AVS**](#running-an-avs)
 - [**Testing**](#testing)
     - [**Running the Included Tests**](#running-the-included-tests)
     - [**Testing Custom Implementations**](#testing-custom-implementations)
 - [**Documentation**](#documentation)
 - [**Contributing**](#contributing)
-
-[//]: # (- [**License**]&#40;#license&#41;)
+  - [**License**](#license)
 
 ---
 ## Features
@@ -50,13 +49,14 @@ git clone https://github.com/webb-tools/eigensdk-rs/
 cd eigensdk-rs
 ```
 
-Build the project:
+---
+## Usage
 
+### Building
 ```bash
 cargo build --release
 ```
-
-To use EigenSDK-RS in your own Rust project, just add the following dependency to your `Cargo.toml`:
+or to use EigenSDK-RS in your own Rust project, just add the following dependency to your `Cargo.toml`:
 ```toml
 [dependencies]
 eigensdk-rs = { git = "https://github.com/webb-tools/eigensdk-rs" }
@@ -65,7 +65,7 @@ eigensdk-rs = { git = "https://github.com/webb-tools/eigensdk-rs" }
 ### Running an AVS
 To programmatically start an AVS operator:
 
-1. Create a new operator, supplying the necessary inputs (dependent upon the AVS you are running). The following is a general example that a real implementation would closely follow:
+1. Create a new operator, supplying the necessary inputs (dependent upon the AVS you are running). The following is a general example that a real implementation would closely follow. The config is dependent upon the AVS you are running.
 ```rust
 let operator = Operator::new_from_config(
 	config,
@@ -85,14 +85,51 @@ operator.start().await?;
 This repository both contains tests for the included AVSs and provides the tools necessary to test custom AVSs you build with this SDK.
 
 ### Running the included tests
-To run the tests, use the following command inside the root directory of the AVS you would like to test:
-```bash
-RUST_LOG=info cargo test test_anvil
-```
-This test starts a local Anvil testnet, deploys all the required contracts to it, and then starts an operator.
+To run the tests from the command line, you can run the following commands in the root directory:
 
-### Testing custom implementations
-We include testing utilities that make it easy to run tests for custom implementations. These tools are currently in development.
+1. You can manually build all smart contracts, though there are build scripts to automatically build them.
+
+```bash
+./test-utils/scripts/build.sh
+```
+
+2. Set the environment variables for running the tests.
+
+```bash
+. ./test-utils/scripts/env_setup.sh
+```
+
+3. Run the test for the AVS you would like to test.
+
+Tangle AVS
+```bash
+cargo test -p test-utils test_tangle_full
+```
+Incredible Squaring AVS
+```bash
+cargo test -p test-utils test_incredible_squaring_full
+```
+
+These full test starts a local Anvil testnet, deploys all the required contracts to it, and then starts an operator.
+
+### Running the Testnets as binaries
+
+1. Build
+```bash
+cargo build --release
+```
+
+2. Run
+
+Incredible Squaring AVS's Testnet
+```bash
+./target/release/incredible-squaring
+```
+
+Tangle AVS'sTestnet
+```bash
+./target/release/tangle
+```
 
 ---
 ## Contributing
@@ -104,9 +141,9 @@ To contribute:
 3. Make your changes and ensure tests pass.
 4. Submit a pull request with a detailed description of your changes.
 
-[//]: # (## License)
-
----
-## Contact
-
-If you have any questions or need further information, please contact the developers [here](https://webb.tools/)
+## License
+Gadget is licensed under either of the following:
+* Apache License, Version 2.0
+  ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license
+  ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)

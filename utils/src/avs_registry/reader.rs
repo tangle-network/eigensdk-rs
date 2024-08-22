@@ -337,7 +337,7 @@ impl<T: Config> AvsRegistryChainReaderTrait for AvsRegistryContractManager<T> {
         let start = start_block;
         let mut end = stop_block;
         if start_block == 0 && stop_block == 0 {
-            end = self.eth_client_http.get_block_number().await? as u64;
+            end = self.eth_client_http.get_block_number().await?;
         }
 
         for i in (start..=end).step_by(block_range as usize) {
