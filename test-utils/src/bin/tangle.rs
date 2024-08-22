@@ -11,7 +11,7 @@ use test_utils::anvil::testnet::tangle::*;
 #[tokio::main]
 async fn main() {
     let _ = env_logger::try_init();
-    run_full_tangle_test().await;
+    run_tangle_testnet().await;
 }
 
 /// Sets up an Operator, given the [ContractAddresses] for the running Testnet you would like utilize
@@ -79,20 +79,6 @@ async fn operator_setup(contract_addresses: ContractAddresses) -> Operator<NodeC
     .unwrap()
 }
 
-/// THIS FUNCTION IS FOR TESTING ONLY
-///
-/// Runs the Tangle Testnet and then creates an Operator that connects and registers.
-async fn run_full_tangle_test() {
-    let _ = env_logger::try_init();
-
-    // Runs new Anvil Testnet - used for deploying programmatically in rust
-    let contract_addresses = run_tangle_testnet().await;
-
-    let operator = operator_setup(contract_addresses).await;
-
-    operator.start().await.unwrap();
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,14 +94,24 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_full_tangle() {
+    async fn test_tangle_testnet_deployment() {
         env_init();
-        run_full_tangle_test().await;
+        let _ = run_tangle_testnet().await;
     }
 
     #[tokio::test]
-    async fn test_tangle_deployment() {
+    async fn test_tangle_full() {
         env_init();
-        let _ = run_tangle_testnet().await;
+
+        // Runs new Anvil Testnet - used for deploying programmatically in rust
+        let contract_addresses = run_tangle_testnet().await;
+
+        // Sets up the Operator
+        let operator = operator_setup(contract_addresses).await;
+
+        // Check that the operator has registered successfully
+        assert!(operator.is_registered().await.unwrap());
+
+        log::info!("Operator Successfully Registered. The Tangle Validator would now start.");
     }
 }

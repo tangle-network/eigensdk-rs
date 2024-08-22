@@ -1,5 +1,5 @@
 use alloy_contract::private::Ethereum;
-use alloy_primitives::{Address, ChainId, Signature, B256};
+use alloy_primitives::{Address, Bytes, ChainId, Signature, B256};
 use alloy_provider::{Provider, RootProvider};
 use alloy_signer_local::PrivateKeySigner;
 use alloy_transport::BoxTransport;
@@ -7,6 +7,8 @@ use eigen_utils::avs_registry::reader::AvsRegistryChainReaderTrait;
 use eigen_utils::avs_registry::writer::AvsRegistryChainWriterTrait;
 use eigen_utils::avs_registry::AvsRegistryContractManager;
 use eigen_utils::crypto::bls::KeyPair;
+use eigen_utils::el_contracts::writer::ElWriter;
+use eigen_utils::el_contracts::ElChainContractManager;
 use eigen_utils::node_api::NodeApi;
 use eigen_utils::types::AvsError;
 use eigen_utils::Config;
@@ -42,6 +44,8 @@ pub enum OperatorError {
     OperatorIdError(String),
     #[error("Error in Operator Address: {0}")]
     OperatorAddressError(String),
+    #[error("Error while Starting Operator: {0}")]
+    OperatorStartError(String),
     #[error(
         "Operator is not registered. Register using the operator-cli before starting operator."
     )]
@@ -146,15 +150,6 @@ impl Config for NodeConfig {
     type S = EigenTangleSigner;
 }
 
-#[derive(Clone)]
-pub struct TangleValidatorContractManager<T: Config> {
-    pub task_manager_addr: Address,
-    pub service_manager_addr: Address,
-    pub eth_client_http: T::PH,
-    pub eth_client_ws: T::PW,
-    pub signer: T::S,
-}
-
 #[derive(Debug, Clone)]
 pub struct SetupConfig<T: Config> {
     pub registry_coordinator_addr: Address,
@@ -229,30 +224,52 @@ impl<T: Config> Operator<T> {
             Address::from_str(&config.tangle_validator_service_manager_address)
                 .map_err(|err| OperatorError::ServiceManagerAddressError(err.to_string()))?;
 
-        // let tangle_validator_contract_manager = TangleValidatorContractManager::build(
-        //     setup_config.registry_coordinator_addr,
-        //     setup_config.operator_state_retriever_addr,
-        //     eth_client_http.clone(),
-        //     eth_client_ws.clone(),
-        //     signer.clone(),
-        // )
-        //     .await?;
+        log::info!("Building Eigenlayer Contract Manager...");
+        let eigenlayer_contract_manager: ElChainContractManager<T> = ElChainContractManager::build(
+            setup_config.delegate_manager_addr,
+            setup_config.avs_directory_addr,
+            eth_client_http.clone(),
+            eth_client_ws.clone(),
+            signer.clone(),
+        )
+        .await
+        .unwrap();
 
-        // if config.register_operator_on_startup {
-        //     operator.register_operator_on_startup(
-        //         operator_ecdsa_private_key,
-        //         config.token_strategy_addr.parse()?,
-        //     );
-        // }
+        // Register Operator with EigenLayer
+        let register_operator = eigen_utils::types::Operator {
+            address: operator_addr,
+            earnings_receiver_address: operator_addr,
+            delegation_approver_address: Address::from([0u8; 20]),
+            staker_opt_out_window_blocks: 50400u32, // About 7 days in blocks on Ethereum
+            metadata_url: "https://github.com/webb-tools/eigensdk-rs/blob/donovan/eigen/test-utils/metadata.json".to_string(),
+        };
+        let eigenlayer_register_result = eigenlayer_contract_manager
+            .register_as_operator(register_operator)
+            .await
+            .unwrap()
+            .status();
+        log::info!(
+            "Eigenlayer Registration result: {:?}",
+            eigenlayer_register_result
+        );
 
-        let _register_result = avs_registry_contract_manager
+        // Register Operator with AVS
+        let quorum_nums = Bytes::from([0x00]);
+        let register_result = avs_registry_contract_manager
             .register_operator(
                 &ecdsa_signing_key,
                 &bls_keypair,
-                alloy_primitives::Bytes::from(vec![0]),
-                "127.0.0.1:8545".to_string(),
+                quorum_nums,
+                config.eth_rpc_url.clone(),
             )
             .await;
+        log::info!("AVS Registration result: {:?}", register_result);
+
+        let answer = avs_registry_contract_manager
+            .is_operator_registered(operator_addr)
+            .await
+            .unwrap();
+        log::info!("Is operator registered: {:?}", answer);
 
         let operator = Operator {
             config: config.clone(),
@@ -274,17 +291,19 @@ impl<T: Config> Operator<T> {
         Ok(operator)
     }
 
-    pub async fn start(&self) -> Result<(), OperatorError> {
-        log::info!("Starting operator.");
+    pub async fn is_registered(&self) -> Result<bool, OperatorError> {
         let operator_is_registered = self
             .avs_registry_contract_manager
             .is_operator_registered(self.operator_addr)
             .await?;
         log::info!("Operator registration status: {:?}", operator_is_registered);
+        Ok(operator_is_registered)
+    }
 
-        if !operator_is_registered {
-            return Err(OperatorError::OperatorNotRegistered);
-        }
+    pub async fn start(&self) -> Result<(), OperatorError> {
+        log::info!("Starting operator.");
+        self.is_registered().await?;
+
         if self.config.enable_node_api {
             if let Err(e) = self.node_api.start().await {
                 return Err(OperatorError::NodeApiError(e.to_string()));
@@ -292,7 +311,9 @@ impl<T: Config> Operator<T> {
         }
 
         log::info!("Starting Tangle Validator...");
-        gadget_executor::run_tangle_validator().await.unwrap();
+        gadget_executor::run_tangle_validator()
+            .await
+            .map_err(|e| OperatorError::OperatorStartError(e.to_string()))?;
 
         Ok(())
     }

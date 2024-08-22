@@ -11714,6 +11714,7 @@ dependencies = [
  "hyper 1.4.1",
  "incredible-squaring-avs",
  "k256",
+ "lazy_static",
  "log",
  "nix 0.28.0",
  "prometheus",

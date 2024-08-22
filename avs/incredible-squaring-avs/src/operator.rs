@@ -277,28 +277,6 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             .get_operator_id(operator_address)
             .await?;
 
-        log::info!(
-            "Operator info: operatorId={}, operatorAddr={}, operatorG1Pubkey={:?}, operatorG2Pubkey={:?}",
-            hex::encode(operator_id),
-            operator_address,
-            bls_keypair.clone().get_pub_key_g1(),
-            bls_keypair.clone().get_pub_key_g2(),
-        );
-
-        let operator = Operator {
-            config: config.clone(),
-            node_api,
-            avs_registry_contract_manager: avs_registry_contract_manager.clone(),
-            incredible_squaring_contract_manager,
-            eigenlayer_contract_manager: eigenlayer_contract_manager.clone(),
-            bls_keypair: bls_keypair.clone(),
-            operator_id,
-            operator_addr: operator_address,
-            aggregator_server_ip_port_addr: config.server_ip_port_address.clone(),
-            aggregator_server: aggregator_service,
-            aggregator_rpc_client,
-        };
-
         // Register Operator with EigenLayer
         let register_operator = eigen_utils::types::Operator {
             address: operator_address,
@@ -335,7 +313,38 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             .unwrap();
         log::info!("Is operator registered: {:?}", answer);
 
+        log::info!(
+            "Operator info: operatorId={}, operatorAddr={}, operatorG1Pubkey={:?}, operatorG2Pubkey={:?}",
+            hex::encode(operator_id),
+            operator_address,
+            bls_keypair.clone().get_pub_key_g1(),
+            bls_keypair.clone().get_pub_key_g2(),
+        );
+
+        let operator = Operator {
+            config: config.clone(),
+            node_api,
+            avs_registry_contract_manager: avs_registry_contract_manager.clone(),
+            incredible_squaring_contract_manager,
+            eigenlayer_contract_manager: eigenlayer_contract_manager.clone(),
+            bls_keypair,
+            operator_id,
+            operator_addr: operator_address,
+            aggregator_server_ip_port_addr: config.server_ip_port_address.clone(),
+            aggregator_server: aggregator_service,
+            aggregator_rpc_client,
+        };
+
         Ok(operator)
+    }
+
+    pub async fn is_registered(&self) -> Result<bool, OperatorError> {
+        let operator_is_registered = self
+            .avs_registry_contract_manager
+            .is_operator_registered(self.operator_addr)
+            .await?;
+        log::info!("Operator registration status: {:?}", operator_is_registered);
+        Ok(operator_is_registered)
     }
 
     pub async fn start(self) -> Result<(), OperatorError> {

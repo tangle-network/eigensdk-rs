@@ -27,6 +27,8 @@ pub struct ContractAddresses {
 }
 
 /// Spawns and runs an Anvil node, deploying the Smart Contracts that are relevant to the Tangle AVS to it.
+///
+/// NOTE: This function will Panic upon contract deployment failure.
 pub async fn run_tangle_testnet() -> ContractAddresses {
     // Initialize the logger
     let _ = env_logger::try_init();
@@ -54,13 +56,13 @@ pub async fn run_tangle_testnet() -> ContractAddresses {
     // Deploy initial contracts that don't depend on others
 
     let istrategy_manager = IStrategyManager::deploy(provider.clone()).await.unwrap();
-    let &strategy_manager_addr = istrategy_manager.address();
+    let &_strategy_manager_addr = istrategy_manager.address();
 
     let idelegation_manager = IDelegationManager::deploy(provider.clone()).await.unwrap();
     let &delegation_manager_addr = idelegation_manager.address();
 
     let iavs_directory = IAVSDirectory::deploy(provider.clone()).await.unwrap();
-    let &avs_directory_addr = iavs_directory.address();
+    let &_avs_directory_addr = iavs_directory.address();
 
     let proxy_admin = ProxyAdmin::deploy_builder(provider.clone())
         .from(dev_account)
@@ -92,11 +94,14 @@ pub async fn run_tangle_testnet() -> ContractAddresses {
 
     // Function with signature initialize(uint256,uint256,address,address) and selector 0x019e2729.
     let function_signature = "initialize(uint256,uint256,address,address)";
-    let mut hasher = Keccak256::new();
-    hasher.update(function_signature);
-    let function_selector = &hasher.finalize()[..4];
 
-    let encoded_data = encode_params!(function_selector, 1, 100, ierc20_addr, pauser_registry_addr);
+    let encoded_data = encode_params!(
+        function_signature,
+        1,
+        100,
+        ierc20_addr,
+        pauser_registry_addr
+    );
 
     let strategy_proxy = TransparentUpgradeableProxy::deploy(
         provider.clone(),
@@ -127,6 +132,7 @@ pub async fn run_tangle_testnet() -> ContractAddresses {
 
     // Deploy Incredible Squaring Contracts
     let number_of_strategies = strategies.len();
+    println!("Number of Strategies: {:?}", number_of_strategies);
 
     let tangle_validator_proxy_admin = ProxyAdmin::deploy_builder(provider.clone())
         .from(dev_account)
@@ -239,6 +245,83 @@ pub async fn run_tangle_testnet() -> ContractAddresses {
         .await
         .unwrap();
     let &operator_state_retriever_addr = operator_state_retriever.address();
+
+    let eth_pos = IETHPOSDeposit::deploy(provider.clone()).await.unwrap();
+    let &eth_pos_addr = eth_pos.address();
+
+    let eigen_pod_beacon = IBeacon::deploy(provider.clone()).await.unwrap();
+    let &eigen_pod_beacon_addr = eigen_pod_beacon.address();
+
+    let strategy_manager = StrategyManager::new(
+        *TransparentUpgradeableProxy::deploy(
+            provider.clone(),
+            empty_contract_addr,
+            tangle_validator_proxy_admin_addr,
+            Bytes::from(""),
+        )
+        .await
+        .unwrap()
+        .address(),
+        provider.clone(),
+    );
+    let &strategy_manager_addr = strategy_manager.address();
+
+    let eigen_pod_manager = EigenPodManager::deploy(
+        provider.clone(),
+        eth_pos_addr,
+        eigen_pod_beacon_addr,
+        strategy_manager_addr,
+        from,
+        delegation_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &eigen_pod_manager_addr = eigen_pod_manager.address();
+
+    let slasher_addr = dev_account;
+    let delegation_manager = DelegationManager::deploy(
+        provider.clone(),
+        strategy_manager_addr,
+        slasher_addr,
+        eigen_pod_manager_addr,
+    )
+    .await
+    .unwrap();
+    let &delegation_manager_addr = delegation_manager.address();
+
+    let strategy_manager_implementation = StrategyManager::deploy(
+        provider.clone(),
+        delegation_manager_addr,
+        eigen_pod_manager_addr,
+        slasher_addr,
+    )
+    .await
+    .unwrap();
+    let &strategy_manager_implementation_addr = strategy_manager_implementation.address();
+    let strategy_manager_upgrade = tangle_validator_proxy_admin
+        .upgrade(strategy_manager_addr, strategy_manager_implementation_addr)
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+    assert!(strategy_manager_upgrade.status());
+
+    let strategy_manager_initialization = strategy_manager
+        .initialize(pausers[0], pausers[0], pauser_registry_addr, U256::from(0))
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+    assert!(strategy_manager_initialization.status());
+
+    let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
+        .await
+        .unwrap();
+    let &avs_directory_addr = avs_directory.address();
 
     // Now, deploy the implementation contracts using the proxy contracts as inputs
     let stake_registry_implementation = StakeRegistry::deploy(
@@ -427,34 +510,6 @@ pub async fn run_tangle_testnet() -> ContractAddresses {
         .await
         .unwrap();
     assert!(tangle_validator_task_manager_upgrade.status());
-
-    let eigen_pod_manager = EigenPodManager::deploy(
-        provider.clone(),
-        empty_contract_addr,
-        empty_contract_addr,
-        strategy_manager_addr,
-        from,
-        delegation_manager_addr,
-    )
-    .await
-    .unwrap();
-    let &eigen_pod_manager_addr = eigen_pod_manager.address();
-
-    let slasher_addr = dev_account;
-    let delegation_manager = DelegationManager::deploy(
-        provider.clone(),
-        strategy_manager_addr,
-        slasher_addr,
-        eigen_pod_manager_addr,
-    )
-    .await
-    .unwrap();
-    let &delegation_manager_addr = delegation_manager.address();
-
-    let avs_directory = AVSDirectory::deploy(provider.clone(), delegation_manager_addr)
-        .await
-        .unwrap();
-    let &avs_directory_addr = avs_directory.address();
 
     log::info!("ERC20MOCK ADDRESS: {:?}", erc20_mock_addr);
     log::info!("ERC20MOCK STRATEGY ADDRESS: {:?}", erc20_mock_strategy_addr);

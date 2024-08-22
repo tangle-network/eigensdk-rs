@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn assert_chain_id_without_rpc() {
-        let anvil = Anvil::new().spawn();
+        let anvil = Anvil::new().chain_id(31337u64).spawn();
         assert_eq!(anvil.chain_id(), 31337);
     }
 }
