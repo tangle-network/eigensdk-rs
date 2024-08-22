@@ -36,6 +36,9 @@ async fn operator_setup(
         enable_metrics: false,
         enable_node_api: false,
         server_ip_port_address: "127.0.0.1:8673".to_string(),
+        metadata_url:
+            "https://github.com/webb-tools/eigensdk-rs/blob/main/test-utils/metadata.json"
+                .to_string(),
     };
 
     let operator_info_service = OperatorInfoService {};
@@ -88,6 +91,8 @@ async fn operator_setup(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy_rpc_types_eth::Log;
+    use incredible_squaring_avs::avs::IncredibleSquaringTaskManager;
     use std::env;
 
     fn env_init() {
@@ -118,6 +123,33 @@ mod tests {
         // Check that the operator has registered successfully
         assert!(operator.is_registered().await.unwrap());
 
-        log::info!("Operator Successfully Registered. The Tangle Validator would now start.");
+        let mut sub = operator.subscribe_to_new_tasks().await.unwrap();
+        log::info!("Subscribed to new tasks: {:?}", sub);
+
+        let server = operator.aggregator_server.clone();
+        let aggregator_server = async move {
+            server.start_server().await.unwrap();
+        };
+        tokio::spawn(aggregator_server);
+
+        let new_task_created_log = sub.recv().await.unwrap();
+        log::info!("Received new task: {:?}", new_task_created_log);
+
+        let log: Log<IncredibleSquaringTaskManager::NewTaskCreated> =
+            new_task_created_log.log_decode().unwrap();
+        let task_response = operator.process_new_task_created_log(&log);
+        log::info!("Generated Task Response: {:?}", task_response);
+        if let Ok(signed_task_response) = operator.sign_task_response(&task_response) {
+            log::info!(
+                "Sending signed task response to aggregator: {:?}",
+                signed_task_response
+            );
+            let agg_rpc_client = operator.aggregator_rpc_client.clone();
+            tokio::spawn(async move {
+                agg_rpc_client
+                    .send_signed_task_response_to_aggregator(signed_task_response)
+                    .await;
+            });
+        }
     }
 }

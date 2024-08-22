@@ -10,6 +10,7 @@ use crate::rpc_client::AggregatorRpcClient;
 use alloy_contract::private::Ethereum;
 use alloy_primitives::{Address, Bytes, ChainId, FixedBytes, Signature, B256, U256};
 use alloy_provider::{Provider, RootProvider};
+use alloy_pubsub::Subscription;
 use alloy_rpc_types::Log;
 use alloy_signer_local::PrivateKeySigner;
 use alloy_sol_types::SolValue;
@@ -85,8 +86,8 @@ pub struct Operator<T: Config, I: OperatorInfoServiceTrait> {
     operator_id: FixedBytes<32>,
     operator_addr: Address,
     aggregator_server_ip_port_addr: String,
-    aggregator_server: Aggregator<T, I>,
-    aggregator_rpc_client: AggregatorRpcClient,
+    pub aggregator_server: Aggregator<T, I>,
+    pub aggregator_rpc_client: AggregatorRpcClient,
 }
 
 #[derive(Clone)]
@@ -156,6 +157,7 @@ pub struct NodeConfig {
     pub server_ip_port_address: String,
     pub operator_address: String,
     pub enable_metrics: bool,
+    pub metadata_url: String,
 }
 
 impl Config for NodeConfig {
@@ -283,7 +285,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             earnings_receiver_address: operator_address,
             delegation_approver_address: Address::from([0u8; 20]),
             staker_opt_out_window_blocks: 50400u32, // About 7 days in blocks on Ethereum
-            metadata_url: "https://github.com/webb-tools/eigensdk-rs/blob/donovan/eigen/test-utils/metadata.json".to_string(),
+            metadata_url: config.metadata_url.clone(),
         };
         let eigenlayer_register_result = eigenlayer_contract_manager
             .register_as_operator(register_operator)
@@ -360,11 +362,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                 return Err(OperatorError::NodeApiError(e.to_string()));
             }
         }
-        let mut sub = self
-            .incredible_squaring_contract_manager
-            .subscribe_to_new_tasks()
-            .await
-            .unwrap();
+        let mut sub = self.subscribe_to_new_tasks().await?;
 
         let server = self.aggregator_server.clone();
         let aggregator_server = async move {
@@ -402,7 +400,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         self.config.clone()
     }
 
-    fn process_new_task_created_log(
+    pub fn process_new_task_created_log(
         &self,
         new_task_created_log: &Log<IncredibleSquaringTaskManager::NewTaskCreated>,
     ) -> IncredibleSquaringTaskManager::TaskResponse {
@@ -425,7 +423,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         }
     }
 
-    fn sign_task_response(
+    pub fn sign_task_response(
         &self,
         task_response: &IncredibleSquaringTaskManager::TaskResponse,
     ) -> Result<SignedTaskResponse, OperatorError> {
@@ -438,5 +436,19 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         };
         log::debug!("Signed task response: {:?}", signed_task_response);
         Ok(signed_task_response)
+    }
+
+    pub async fn subscribe_to_new_tasks(&self) -> Result<Subscription<Log>, AvsError> {
+        self.incredible_squaring_contract_manager
+            .subscribe_to_new_tasks()
+            .await
+    }
+
+    pub async fn start_aggregator_server(&self) -> Result<(), AvsError> {
+        self.aggregator_server
+            .clone()
+            .start_server()
+            .await
+            .map_err(|e| AvsError::OperatorError(e.to_string()))
     }
 }

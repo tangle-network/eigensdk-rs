@@ -90,6 +90,7 @@ pub struct NodeConfig {
     pub operator_address: String,
     pub enable_metrics: bool,
     pub enable_node_api: bool,
+    pub metadata_url: String,
 }
 
 #[derive(Clone)]
@@ -241,7 +242,7 @@ impl<T: Config> Operator<T> {
             earnings_receiver_address: operator_addr,
             delegation_approver_address: Address::from([0u8; 20]),
             staker_opt_out_window_blocks: 50400u32, // About 7 days in blocks on Ethereum
-            metadata_url: "https://github.com/webb-tools/eigensdk-rs/blob/donovan/eigen/test-utils/metadata.json".to_string(),
+            metadata_url: config.metadata_url.clone(),
         };
         let eigenlayer_register_result = eigenlayer_contract_manager
             .register_as_operator(register_operator)

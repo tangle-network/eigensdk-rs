@@ -110,7 +110,7 @@ Incredible Squaring AVS
 cargo test -p test-utils test_incredible_squaring_full
 ```
 
-These full test starts a local Anvil testnet, deploys all the required contracts to it, and then starts an operator.
+These full tests start a local Anvil testnet, deploy all the required contracts to it, and then start an operator.
 
 ### Running the Testnets as binaries
 

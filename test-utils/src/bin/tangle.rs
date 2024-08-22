@@ -33,6 +33,9 @@ async fn operator_setup(contract_addresses: ContractAddresses) -> Operator<NodeC
         enable_node_api: false,
         operator_state_retriever_address: contract_addresses.operator_state_retriever.to_string(),
         avs_directory_address: contract_addresses.avs_directory.to_string(),
+        metadata_url:
+            "https://github.com/webb-tools/eigensdk-rs/blob/main/test-utils/metadata.json"
+                .to_string(),
     };
 
     let hex_key =

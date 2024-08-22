@@ -4,7 +4,12 @@ use std::process::Command;
 
 fn main() {
     // List of directories containing Solidity contracts
-    let contract_dirs = vec!["./contracts"];
+    let contract_dirs: Vec<&str> = vec![
+        "./../contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts",
+        "./../contracts/lib/eigenlayer-middleware",
+        "./../contracts",
+        "./contracts",
+    ];
 
     // Get the project root directory
     let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
