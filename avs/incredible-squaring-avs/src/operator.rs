@@ -40,14 +40,20 @@ const SEM_VER: &str = "0.0.1";
 
 #[derive(Debug, Error)]
 pub enum OperatorError {
+    #[error("Error in Address: {0}")]
+    AddressError(String),
     #[error("Cannot create HTTP ethclient: {0}")]
     HttpEthClientError(String),
     #[error("Cannot create WS ethclient: {0}")]
     WsEthClientError(String),
     #[error("Cannot parse BLS private key: {0}")]
     BlsPrivateKeyError(String),
+    #[error("Cannot parse ECDSA private key: {0}")]
+    EcdsaPrivateKeyError(String),
     #[error("Cannot get chainId: {0}")]
     ChainIdError(String),
+    #[error("Error using Contract Manager: {0}")]
+    ContractManagerError(String),
     #[error("Error creating AvsWriter: {0}")]
     AvsWriterError(String),
     #[error("Error creating AvsReader: {0}")]
@@ -68,6 +74,8 @@ pub enum OperatorError {
     WebsocketSubscriptionError(String),
     #[error("Error getting task response header hash: {0}")]
     TaskResponseHeaderHashError(String),
+    #[error("Error in Task Handling Process: {0}")]
+    TaskError(String),
     #[error("AVS SDK error")]
     AvsSdkError(#[from] AvsError),
     #[error("Wallet error")]
@@ -187,7 +195,8 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         signer: T::S,
     ) -> Result<Self, OperatorError> {
         let _metrics_reg = Registry::new();
-        let operator_address = Address::from_str(&config.operator_address).unwrap();
+        let operator_address = Address::from_str(&config.operator_address)
+            .map_err(|e| OperatorError::AddressError(e.to_string()))?;
 
         let node_api = NodeApi::new(AVS_NAME, SEM_VER, &config.node_api_ip_port_address);
 
@@ -207,7 +216,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             &config.ecdsa_private_key_store_path,
             &ecdsa_key_password,
         )
-        .unwrap();
+        .map_err(|e| OperatorError::EcdsaPrivateKeyError(e.to_string()))?;
         let ecdsa_signing_key = SigningKey::from(&ecdsa_secret_key);
         let verifying_key = VerifyingKey::from(&ecdsa_signing_key);
         let ecdsa_address = verifying_key.to_address();
@@ -218,11 +227,13 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
 
         let setup_config = SetupConfig::<T> {
             registry_coordinator_addr: Address::from_str(&config.avs_registry_coordinator_addr)
-                .unwrap(),
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
             operator_state_retriever_addr: Address::from_str(&config.operator_state_retriever_addr)
-                .unwrap(),
-            delegate_manager_addr: Address::from_str(&config.delegation_manager_addr).unwrap(),
-            avs_directory_addr: Address::from_str(&config.avs_directory_addr).unwrap(),
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
+            delegate_manager_addr: Address::from_str(&config.delegation_manager_addr)
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
+            avs_directory_addr: Address::from_str(&config.avs_directory_addr)
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
             eth_client_http: eth_client_http.clone(),
             eth_client_ws: eth_client_ws.clone(),
             signer: signer.clone(),
@@ -236,11 +247,12 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             signer.clone(),
         )
         .await
-        .unwrap();
+        .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?;
 
         log::info!("About to build AVS Registry Contract Manager");
         let avs_registry_contract_manager = AvsRegistryContractManager::build(
-            Address::from_str(&config.incredible_squaring_service_manager_addr).unwrap(),
+            Address::from_str(&config.incredible_squaring_service_manager_addr)
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
             setup_config.registry_coordinator_addr,
             setup_config.operator_state_retriever_addr,
             setup_config.delegate_manager_addr,
@@ -250,7 +262,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             signer.clone(),
         )
         .await
-        .unwrap();
+        .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?;
 
         log::info!("Building Aggregator Service...");
         let aggregator_service = Aggregator::build(
@@ -259,7 +271,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             config.server_ip_port_address.clone(),
         )
         .await
-        .unwrap();
+        .map_err(|e| OperatorError::AggregatorRpcClientError(e.to_string()))?;
 
         log::info!("Building Aggregator RPC Client...");
         let aggregator_rpc_client = AggregatorRpcClient::new(config.server_ip_port_address.clone());
@@ -273,7 +285,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             signer.clone(),
         )
         .await
-        .unwrap();
+        .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?;
 
         let operator_id = avs_registry_contract_manager
             .get_operator_id(operator_address)
@@ -290,7 +302,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         let eigenlayer_register_result = eigenlayer_contract_manager
             .register_as_operator(register_operator)
             .await
-            .unwrap()
+            .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?
             .status();
         log::info!(
             "Eigenlayer Registration result: {:?}",
@@ -312,7 +324,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         let answer = avs_registry_contract_manager
             .is_operator_registered(operator_address)
             .await
-            .unwrap();
+            .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?;
         log::info!("Is operator registered: {:?}", answer);
 
         log::info!(
@@ -372,7 +384,10 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
 
         log::info!("Subscribed to new tasks: {:?}", sub);
 
-        let value = sub.recv().await.unwrap();
+        let value = sub
+            .recv()
+            .await
+            .map_err(|e| OperatorError::TaskError(e.to_string()))?;
         log::info!("Received new task: {:?}", value);
 
         loop {
@@ -381,7 +396,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
                 Ok(new_task_created_log) = sub.recv() => {
                     log::info!("Received new task: {:?}", new_task_created_log);
                     // self.metrics.inc_num_tasks_received();
-                    let log: Log<IncredibleSquaringTaskManager::NewTaskCreated> = new_task_created_log.log_decode().unwrap();
+                    let log: Log<IncredibleSquaringTaskManager::NewTaskCreated> = new_task_created_log.log_decode().map_err(|e| OperatorError::TaskError(e.to_string()))?;
                     let task_response = self.process_new_task_created_log(&log);
                     log::info!("Generated Task Response: {:?}", task_response);
                     if let Ok(signed_task_response) = self.sign_task_response(&task_response) {

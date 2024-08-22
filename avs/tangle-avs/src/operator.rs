@@ -24,14 +24,20 @@ const SEM_VER: &str = "0.0.1";
 
 #[derive(Debug, Error)]
 pub enum OperatorError {
+    #[error("Error in Address: {0}")]
+    AddressError(String),
     #[error("Cannot create HTTP ethclient: {0}")]
     HttpEthClientError(String),
     #[error("Cannot create WS ethclient: {0}")]
     WsEthClientError(String),
     #[error("Cannot parse BLS private key: {0}")]
     BlsPrivateKeyError(String),
+    #[error("Cannot parse ECDSA private key: {0}")]
+    EcdsaPrivateKeyError(String),
     #[error("Cannot get chainId: {0}")]
     ChainIdError(String),
+    #[error("Error using Contract Manager: {0}")]
+    ContractManagerError(String),
     #[error("Error creating AvsWriter: {0}")]
     AvsWriterError(String),
     #[error("Error creating AvsReader: {0}")]
@@ -54,6 +60,8 @@ pub enum OperatorError {
     MetricsServerError(String),
     #[error("Error in Service Manager Address: {0}")]
     ServiceManagerAddressError(String),
+    #[error("Error in Task Handling Process: {0}")]
+    TaskError(String),
     #[error("Error in websocket subscription: {0}")]
     WebsocketSubscriptionError(String),
     #[error("AVS SDK error")]
@@ -185,25 +193,28 @@ impl<T: Config> Operator<T> {
             &config.ecdsa_private_key_store_path,
             &ecdsa_key_password,
         )
-        .unwrap();
+        .map_err(|e| OperatorError::EcdsaPrivateKeyError(e.to_string()))?;
         let ecdsa_signing_key = SigningKey::from(&ecdsa_secret_key);
 
         let setup_config = SetupConfig::<T> {
             registry_coordinator_addr: Address::from_str(&config.avs_registry_coordinator_address)
-                .unwrap(),
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
             operator_state_retriever_addr: Address::from_str(
                 &config.operator_state_retriever_address,
             )
-            .unwrap(),
-            delegate_manager_addr: Address::from_str(&config.delegation_manager_address).unwrap(),
-            avs_directory_addr: Address::from_str(&config.avs_directory_address).unwrap(),
+            .map_err(|e| OperatorError::AddressError(e.to_string()))?,
+            delegate_manager_addr: Address::from_str(&config.delegation_manager_address)
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
+            avs_directory_addr: Address::from_str(&config.avs_directory_address)
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
             eth_client_http: eth_client_http.clone(),
             eth_client_ws: eth_client_ws.clone(),
             signer: signer.clone(),
         };
 
         let avs_registry_contract_manager = AvsRegistryContractManager::build(
-            Address::from_str(&config.tangle_validator_service_manager_address).unwrap(),
+            Address::from_str(&config.tangle_validator_service_manager_address)
+                .map_err(|e| OperatorError::AddressError(e.to_string()))?,
             setup_config.registry_coordinator_addr,
             setup_config.operator_state_retriever_addr,
             setup_config.delegate_manager_addr,
@@ -234,7 +245,7 @@ impl<T: Config> Operator<T> {
             signer.clone(),
         )
         .await
-        .unwrap();
+        .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?;
 
         // Register Operator with EigenLayer
         let register_operator = eigen_utils::types::Operator {
@@ -247,7 +258,7 @@ impl<T: Config> Operator<T> {
         let eigenlayer_register_result = eigenlayer_contract_manager
             .register_as_operator(register_operator)
             .await
-            .unwrap()
+            .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?
             .status();
         log::info!(
             "Eigenlayer Registration result: {:?}",
@@ -269,7 +280,7 @@ impl<T: Config> Operator<T> {
         let answer = avs_registry_contract_manager
             .is_operator_registered(operator_addr)
             .await
-            .unwrap();
+            .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?;
         log::info!("Is operator registered: {:?}", answer);
 
         let operator = Operator {

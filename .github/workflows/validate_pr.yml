@@ -107,6 +107,11 @@ jobs:
       - name: Add Foundry to PATH
         run: echo "${HOME}/.foundry/bin" >> $GITHUB_PATH
 
+      - name: Set Password Environment Variables
+        run: |
+          echo "ECDSA_PASSWORD" >> $OPERATOR_ECDSA_KEY_PASSWORD
+          echo "BLS" >> $OPERATOR_BLS_KEY_PASSWORD
+
       - name: install rust
         uses: dtolnay/rust-toolchain@nightly
         with:
