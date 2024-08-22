@@ -8,9 +8,9 @@
 
 [//]: # (---)
 
-EigenSDK-RS is a Rust implementation of Layr-Lab's eigensdk-go. Additionally, it incorporates features for interacting with Tangle and utilizing Gadgets, offering a comprehensive solution for building applications with both Eigenlayer and Tangle. This SDK is a high-performance, reliable, and efficient library that integrates seamlessly with Eigen's ecosystem while leveraging the many advantages of Rust.
+`eigensdk-rs` is a Rust SDK for interacting with Eigenlayer and building AVS tooling. Additionally, it incorporates features for interacting with Tangle and utilizing our [gadget](https://github.com/webb-tools/gadget), an augmented SDK for building task based AVS. Together, these two offer a comprehensive solution for building applications with both Eigenlayer and Tangle. This SDK is a high-performance, reliable, and efficient library that integrates seamlessly with Eigenlayer's ecosystem while leveraging the many advantages of Rust.
 
-It should be noted that this SDK is still being actively developed.
+It should be noted that this SDK is still being actively developed and has not undergone a professional audit. Please use at your own risk in production.
 
 ---
 ## Table of Contents
