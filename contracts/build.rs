@@ -21,13 +21,16 @@ fn main() {
                 panic!("Forge executable not found. Make sure Foundry is installed.");
             }
             path
-        },
+        }
         Err(_) => panic!("Failed to locate `forge` executable. Make sure Foundry is installed."),
     };
 
     for dir in contract_dirs {
         let full_path = root.join(dir).canonicalize().unwrap_or_else(|_| {
-            println!("Directory not found or inaccessible: {}", root.join(dir).display());
+            println!(
+                "Directory not found or inaccessible: {}",
+                root.join(dir).display()
+            );
             root.join(dir)
         });
 
@@ -44,7 +47,10 @@ fn main() {
                 panic!("Forge build failed for directory: {}", full_path.display());
             }
         } else {
-            println!("Directory not found or does not exist: {}", full_path.display());
+            println!(
+                "Directory not found or does not exist: {}",
+                full_path.display()
+            );
         }
     }
 }

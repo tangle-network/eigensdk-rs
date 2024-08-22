@@ -14,6 +14,7 @@ env:
   RUST_BACKTRACE: full
   RUST_LOG: "info"
   CARGO_TERM_COLOR: always
+  CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG: true
 
 jobs:
   formatting:
@@ -34,7 +35,7 @@ jobs:
 
   linting:
     timeout-minutes: 120
-    name: cargo clippy
+    name: Cargo Clippy
     runs-on: macos-latest
     strategy:
       matrix:
@@ -42,19 +43,31 @@ jobs:
           eigensdk-rs
         ]
     steps:
-      - name: checkout code
+      - name: Checkout Code
         uses: actions/checkout@v2
         with:
           submodules: true
           fetch-depth: 0
 
-      - name: Print current directory
+      - name: Install Foundry
+        run: |
+          curl -L https://foundry.paradigm.xyz | bash
+          source /Users/runner/.bashrc
+          foundryup
+
+      - name: Add Foundry to PATH
+        run: echo "${HOME}/.foundry/bin" >> $GITHUB_PATH
+
+      - name: Verify Forge installation
+        run: forge --version
+
+      - name: Current Working Directory
         run: pwd
 
-      - name: List files
+      - name: List Files in Current Working Directory
         run: ls -al
 
-      - name: install rust
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -68,7 +81,7 @@ jobs:
 
   testing:
     timeout-minutes: 90
-    name: cargo test
+    name: Cargo Test
     if: false # temporarily disabled
     runs-on: macos-14
     strategy:
