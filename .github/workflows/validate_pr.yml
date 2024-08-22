@@ -67,6 +67,18 @@ jobs:
       - name: List Files in Current Working Directory
         run: ls -al
 
+      - name: Debugging Smart Contracts
+        run: |
+          ls avs/tangle-avs/contracts/
+          ls avs/tangle-avs/contracts/lib/
+          ls avs/tangle-avs/contracts/lib/eigenlayer-middleware/
+          ls avs/tangle-avs/contracts/lib/eigenlayer-middleware/lib/
+          ls avs/tangle-avs/contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts/
+          ls avs/tangle-avs/contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/
+          ls avs/tangle-avs/contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts
+          ls avs/tangle-avs/contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/contracts/
+          ls avs/tangle-avs/contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts/lib/openzeppelin-contracts/contracts/interfaces/
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
