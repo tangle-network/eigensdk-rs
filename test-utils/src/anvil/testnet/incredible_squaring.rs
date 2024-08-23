@@ -11,14 +11,36 @@ use incredible_squaring_avs::avs::{
     IncredibleSquaringServiceManager, IncredibleSquaringTaskManager,
 };
 
+/// The Password used when reading and writing BLS Keys. This value should match the value set for
+/// the `OPERATOR_BLS_KEY_PASSWORD` Environment Variable.
+/// # Script
+/// This can be done automatically with the
+/// default value below using the following script:
+/// ```bash
+/// . ./test-utils/scripts/env_setup.sh
+/// ```
 pub static BLS_PASSWORD: &str = "BLS_PASSWORD";
+
+/// The Password used when reading and writing ECDSA Keys. This value should match the value set for
+/// the `OPERATOR_ECDSA_KEY_PASSWORD` Environment Variable.
+/// # Script
+/// This can be done automatically with the
+/// default value below using the following script:
+/// ```bash
+/// . ./test-utils/scripts/env_setup.sh
+/// ```
 pub static ECDSA_PASSWORD: &str = "ECDSA_PASSWORD";
+
+/// The number of blocks the task response window is set to.
 pub static TASK_RESPONSE_WINDOW_BLOCK: u32 = 10;
-pub static TASK_DURATION_BLOCKS: u32 = 0;
-// static QUORUM_THRESHOLD_PERCENTAGE: U256 = U256::from(100);
+
+/// The Account Address that will be used for Aggregating Task Responses
 pub static AGGREGATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
+
+/// The Account Address that will be used for Generating Tasks
 pub static TASK_GENERATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
 
+/// Struct containing the addresses of the smart contracts necessary for setting up an Operator
 pub struct ContractAddresses {
     pub service_manager: Address,
     pub registry_coordinator: Address,
@@ -28,7 +50,13 @@ pub struct ContractAddresses {
     pub operator: Address,
 }
 
-/// Spawns and runs an Anvil Node, deploying the Smart Contracts that are relevant to the Incredible Squaring AVS to it.
+/// Spawns and runs an Anvil Node, deploying the Smart Contracts that are relevant to
+/// the Incredible Squaring AVS to it.
+///
+/// # Panics
+///
+/// This function will Panic upon contract deployment failure. It uses the `assert!` macro
+/// to ensure contract deployments return a success status
 pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     // Initialize the logger
     let _ = env_logger::try_init();
@@ -95,10 +123,6 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
 
     // Function with signature initialize(uint256,uint256,address,address) and selector 0x019e2729.
     let function_signature = "initialize(uint256,uint256,address,address)";
-    // let mut hasher = Keccak256::new();
-    // hasher.update(function_signature);
-    // let function_selector = &hasher.finalize()[..4];
-
     let encoded_data = encode_params!(
         function_signature,
         1,
@@ -136,10 +160,8 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
 
     // Deploy Incredible Squaring Contracts
     let number_of_strategies = strategies.len();
-    println!("Number of Strategies: {:?}", number_of_strategies);
+    log::info!("Number of Strategies: {:?}", number_of_strategies);
 
-    // let incredible_squaring_proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
-    // let &incredible_squaring_proxy_admin_addr = incredible_squaring_proxy_admin.address();
     let incredible_squaring_proxy_admin = ProxyAdmin::deploy_builder(provider.clone())
         .from(dev_account)
         .send()
@@ -562,6 +584,7 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
     );
     log::info!("DELEGATION MANAGER ADDRESS: {:?}", delegation_manager_addr);
 
+    // We spawn a task to generate tasks regularly for testing
     let spawner_task_manager_address = incredible_squaring_task_manager_addr;
     let spawner_provider = provider.clone();
     let task_spawner = async move {
