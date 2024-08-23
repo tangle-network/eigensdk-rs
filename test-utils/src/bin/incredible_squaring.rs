@@ -1,8 +1,13 @@
 #![allow(dead_code)]
+
+use alloy_primitives::ChainId;
 use alloy_provider::Provider;
 use alloy_provider::ProviderBuilder;
+use alloy_signer::Signer;
 use alloy_signer_local::PrivateKeySigner;
 use alloy_transport_ws::WsConnect;
+use eigen_utils::crypto::bls::KeyPair;
+use eigen_utils::types::{operator_id_from_key_pair, OperatorInfo, OperatorPubkeys};
 use incredible_squaring_avs::operator::*;
 use k256::ecdsa::SigningKey;
 use k256::elliptic_curve::SecretKey;
@@ -17,7 +22,7 @@ async fn main() {
 /// Sets up an Operator, given the [ContractAddresses] for the running Testnet you would like utilize
 async fn operator_setup(
     contract_addresses: ContractAddresses,
-) -> Operator<NodeConfig, OperatorInfoService> {
+) -> Result<Operator<NodeConfig, OperatorInfoService>, OperatorError> {
     let http_endpoint = "http://127.0.0.1:8545";
     let ws_endpoint = "ws://127.0.0.1:8545";
     let node_config = NodeConfig {
@@ -41,37 +46,71 @@ async fn operator_setup(
                 .to_string(),
     };
 
-    let operator_info_service = OperatorInfoService {};
-
-    let hex_key =
-        hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80").unwrap();
-    let secret_key = SecretKey::from_slice(&hex_key).unwrap();
-    let signing_key = SigningKey::from(secret_key.clone());
-    let signer = EigenGadgetSigner {
-        signer: PrivateKeySigner::from_signing_key(signing_key),
-    };
-
-    println!("Creating HTTP Provider...");
+    log::info!("Creating HTTP Provider...");
 
     let http_provider = ProviderBuilder::new()
         .with_recommended_fillers()
-        .on_http(http_endpoint.parse().unwrap())
+        .on_http(
+            http_endpoint
+                .parse::<url::Url>()
+                .map_err(|e| OperatorError::HttpEthClientError(e.to_string()))?,
+        )
         .root()
         .clone()
         .boxed();
 
-    println!("Creating WS Provider...");
+    log::info!("Creating WS Provider...");
 
     let ws_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .on_ws(WsConnect::new(ws_endpoint))
         .await
-        .unwrap()
+        .map_err(|e| OperatorError::WsEthClientError(e.to_string()))?
         .root()
         .clone()
         .boxed();
 
-    println!("Now setting up Operator!");
+    log::info!("Now setting up Operator!");
+
+    let chain_id = http_provider
+        .get_chain_id()
+        .await
+        .map_err(|e| OperatorError::HttpEthClientError(e.to_string()))?;
+
+    let bls_key_password =
+        std::env::var("OPERATOR_BLS_KEY_PASSWORD").unwrap_or_else(|_| "".to_string());
+    let bls_keypair = KeyPair::read_private_key_from_file(
+        &node_config.bls_private_key_store_path.clone(),
+        &bls_key_password,
+    )?;
+    let operator_pubkeys = OperatorPubkeys {
+        g1_pubkey: bls_keypair.get_pub_key_g1().to_ark_g1(),
+        g2_pubkey: bls_keypair.get_pub_key_g2().to_ark_g2(),
+    };
+
+    let operator_id = operator_id_from_key_pair(&bls_keypair);
+
+    let hex_key = hex::decode("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+        .map_err(|e| OperatorError::EcdsaPrivateKeyError(e.to_string()))?;
+    let secret_key = SecretKey::from_slice(&hex_key)
+        .map_err(|e| OperatorError::EcdsaPrivateKeyError(e.to_string()))?;
+    let signing_key = SigningKey::from(secret_key.clone());
+    let signer = EigenGadgetSigner::new(
+        PrivateKeySigner::from_signing_key(signing_key),
+        Some(ChainId::from(chain_id)),
+    );
+
+    let operator_info = OperatorInfo {
+        socket: "0.0.0.0:0".to_string(),
+        pubkeys: operator_pubkeys,
+    };
+
+    let operator_info_service = OperatorInfoService::new(
+        operator_info,
+        operator_id,
+        signer.address(),
+        node_config.clone(),
+    );
 
     Operator::<NodeConfig, OperatorInfoService>::new_from_config(
         node_config.clone(),
@@ -85,7 +124,6 @@ async fn operator_setup(
         signer,
     )
     .await
-    .unwrap()
 }
 
 #[cfg(test)]
@@ -118,7 +156,7 @@ mod tests {
         let contract_addresses = run_incredible_squaring_testnet().await;
 
         // Sets up the Operator
-        let operator = operator_setup(contract_addresses).await;
+        let operator = operator_setup(contract_addresses).await.unwrap();
 
         // Check that the operator has registered successfully
         assert!(operator.is_registered().await.unwrap());

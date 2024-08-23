@@ -10,13 +10,36 @@ use eigen_contracts::{
 };
 use tangle_avs::{TangleValidatorServiceManager, TangleValidatorTaskManager};
 
+/// The Password used when reading and writing BLS Keys. This value should match the value set for
+/// the `OPERATOR_BLS_KEY_PASSWORD` Environment Variable.
+/// # Script
+/// This can be done automatically with the
+/// default value below using the following script:
+/// ```bash
+/// . ./test-utils/scripts/env_setup.sh
+/// ```
 pub static BLS_PASSWORD: &str = "BLS_PASSWORD";
+
+/// The Password used when reading and writing ECDSA Keys. This value should match the value set for
+/// the `OPERATOR_ECDSA_KEY_PASSWORD` Environment Variable.
+/// # Script
+/// This can be done automatically with the
+/// default value below using the following script:
+/// ```bash
+/// . ./test-utils/scripts/env_setup.sh
+/// ```
 pub static ECDSA_PASSWORD: &str = "ECDSA_PASSWORD";
+
+/// The number of blocks the task response window is set to.
 pub static TASK_RESPONSE_WINDOW_BLOCK: u32 = 10;
-pub static TASK_DURATION_BLOCKS: u32 = 0;
+
+/// The Account Address that will be used for Aggregating Task Responses
 pub static AGGREGATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
+
+/// The Account Address that will be used for Generating Tasks
 pub static TASK_GENERATOR_ADDR: Address = address!("a0Ee7A142d267C1f36714E4a8F75612F20a79720");
 
+/// Struct containing the addresses of the smart contracts necessary for setting up an Operator
 pub struct ContractAddresses {
     pub service_manager: Address,
     pub registry_coordinator: Address,
@@ -94,7 +117,6 @@ pub async fn run_tangle_testnet() -> ContractAddresses {
 
     // Function with signature initialize(uint256,uint256,address,address) and selector 0x019e2729.
     let function_signature = "initialize(uint256,uint256,address,address)";
-
     let encoded_data = encode_params!(
         function_signature,
         1,
@@ -132,7 +154,7 @@ pub async fn run_tangle_testnet() -> ContractAddresses {
 
     // Deploy Incredible Squaring Contracts
     let number_of_strategies = strategies.len();
-    println!("Number of Strategies: {:?}", number_of_strategies);
+    log::info!("Number of Strategies: {:?}", number_of_strategies);
 
     let tangle_validator_proxy_admin = ProxyAdmin::deploy_builder(provider.clone())
         .from(dev_account)

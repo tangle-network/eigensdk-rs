@@ -38,17 +38,6 @@ pub struct Operator {
 
 impl Operator {
     pub async fn validate(&self) -> Result<(), AvsError> {
-        // if !is_valid_ethereum_address(&self.address) {
-        //     return Err(AvsError::InvalidOperatorAddress);
-        // }
-        // if !is_valid_ethereum_address(&self.earnings_receiver_address) {
-        //     return Err(AvsError::InvalidEarningsReceiverAddress);
-        // }
-        // if self.delegation_approver_address != ZERO_ADDRESS
-        //     && !is_valid_ethereum_address(&self.delegation_approver_address)
-        // {
-        //     return Err(AvsError::InvalidDelegationApproverAddress);
-        // }
         check_if_url_is_valid(&self.metadata_url)?;
         let body = read_public_url(&self.metadata_url).await?;
         let operator_metadata: OperatorMetadata =
@@ -59,9 +48,6 @@ impl Operator {
 }
 
 // Socket represents the operator's socket address, which is registered onchain
-// TODO: this could have multiple formats... do we really want to use a custom type for this?
-// it could be ip:port, or just port, or ip:port:port if 2 ports are needed (like in eigenda's cast)
-// or whatever an avs decides to use
 pub type Socket = String;
 
 #[derive(Debug, Default, Clone, PartialEq, CanonicalSerialize, CanonicalDeserialize)]

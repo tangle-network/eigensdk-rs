@@ -22,6 +22,7 @@ use thiserror::Error;
 const AVS_NAME: &str = "incredible-squaring";
 const SEM_VER: &str = "0.0.1";
 
+/// Error type specific to the Operator for the Tangle AVS
 #[derive(Debug, Error)]
 pub enum OperatorError {
     #[error("Error in Address: {0}")]
@@ -72,6 +73,7 @@ pub enum OperatorError {
     NodeApiError(String),
 }
 
+/// Tangle AVS Operator Struct
 #[allow(dead_code)]
 pub struct Operator<T: Config> {
     config: NodeConfig,
@@ -82,6 +84,7 @@ pub struct Operator<T: Config> {
     tangle_validator_service_manager_addr: Address,
 }
 
+/// Tangle AVS Node Config Struct - Contains all the configurations relevant to the AVS' Target Chain
 #[derive(Debug, Clone)]
 pub struct NodeConfig {
     pub node_api_ip_port_address: String,
@@ -108,14 +111,20 @@ pub struct EigenTangleProvider {
 
 impl Provider for EigenTangleProvider {
     fn root(&self) -> &RootProvider<BoxTransport, Ethereum> {
-        println!("Provider Root TEST");
         &self.provider
     }
 }
 
 #[derive(Clone)]
 pub struct EigenTangleSigner {
-    pub signer: PrivateKeySigner,
+    signer: PrivateKeySigner,
+    chain_id: Option<ChainId>,
+}
+
+impl EigenTangleSigner {
+    pub fn new(signer: PrivateKeySigner, chain_id: Option<ChainId>) -> Self {
+        Self { signer, chain_id }
+    }
 }
 
 impl alloy_signer::Signer for EigenTangleSigner {
@@ -136,18 +145,15 @@ impl alloy_signer::Signer for EigenTangleSigner {
     }
 
     fn address(&self) -> Address {
-        println!("ADDRESS TEST");
-        panic!("Signer functions for EigenTangleSigner are not yet implemented")
+        self.signer.address()
     }
 
     fn chain_id(&self) -> Option<ChainId> {
-        println!("CHAIN ID TEST");
-        panic!("Signer functions for EigenTangleSigner are not yet implemented")
+        self.chain_id
     }
 
-    fn set_chain_id(&mut self, _chain_id: Option<ChainId>) {
-        println!("SET CHAIN ID TEST");
-        panic!("Signer functions for EigenTangleSigner are not yet implemented")
+    fn set_chain_id(&mut self, chain_id: Option<ChainId>) {
+        self.chain_id = chain_id;
     }
 }
 
@@ -171,6 +177,7 @@ pub struct SetupConfig<T: Config> {
 }
 
 impl<T: Config> Operator<T> {
+    /// Creates a new Operator from the given config, providers, and signer
     pub async fn new_from_config(
         config: NodeConfig,
         eth_client_http: T::PH,
@@ -179,6 +186,7 @@ impl<T: Config> Operator<T> {
     ) -> Result<Self, OperatorError> {
         let node_api = NodeApi::new(AVS_NAME, SEM_VER, &config.node_api_ip_port_address);
 
+        log::info!("Reading BLS key");
         let bls_key_password =
             std::env::var("OPERATOR_BLS_KEY_PASSWORD").unwrap_or_else(|_| "".to_string());
         let bls_keypair = KeyPair::read_private_key_from_file(
@@ -187,6 +195,7 @@ impl<T: Config> Operator<T> {
         )
         .map_err(OperatorError::from)?;
 
+        log::info!("Reading ECDSA key");
         let ecdsa_key_password =
             std::env::var("OPERATOR_ECDSA_KEY_PASSWORD").unwrap_or_else(|_| "".to_string());
         let ecdsa_secret_key = eigen_utils::crypto::ecdsa::read_key(
@@ -303,6 +312,7 @@ impl<T: Config> Operator<T> {
         Ok(operator)
     }
 
+    /// Queries the Chain for the Operator's registration status on the AVS
     pub async fn is_registered(&self) -> Result<bool, OperatorError> {
         let operator_is_registered = self
             .avs_registry_contract_manager
@@ -312,6 +322,7 @@ impl<T: Config> Operator<T> {
         Ok(operator_is_registered)
     }
 
+    /// Starts the operator, running the Tangle Validator and optionally the Node API
     pub async fn start(&self) -> Result<(), OperatorError> {
         log::info!("Starting operator.");
         self.is_registered().await?;

@@ -25,7 +25,7 @@ use eigen_utils::el_contracts::writer::ElWriter;
 use eigen_utils::el_contracts::ElChainContractManager;
 use eigen_utils::node_api::NodeApi;
 use eigen_utils::services::operator_info::OperatorInfoServiceTrait;
-use eigen_utils::types::{AvsError, OperatorInfo};
+use eigen_utils::types::{AvsError, OperatorId, OperatorInfo};
 use eigen_utils::Config;
 use k256::ecdsa::{SigningKey, VerifyingKey};
 use log::error;
@@ -38,6 +38,7 @@ use thiserror::Error;
 const AVS_NAME: &str = "incredible-squaring";
 const SEM_VER: &str = "0.0.1";
 
+/// Error type specific to the Operator for the Incredible Squaring AVS
 #[derive(Debug, Error)]
 pub enum OperatorError {
     #[error("Error in Address: {0}")]
@@ -84,6 +85,7 @@ pub enum OperatorError {
     NodeApiError(String),
 }
 
+/// Incredible Squaring AVS Operator Struct
 pub struct Operator<T: Config, I: OperatorInfoServiceTrait> {
     config: NodeConfig,
     node_api: NodeApi,
@@ -105,14 +107,20 @@ pub struct EigenGadgetProvider {
 
 impl Provider for EigenGadgetProvider {
     fn root(&self) -> &RootProvider<BoxTransport, Ethereum> {
-        println!("Provider Root TEST");
         &self.provider
     }
 }
 
 #[derive(Clone)]
 pub struct EigenGadgetSigner {
-    pub signer: PrivateKeySigner,
+    signer: PrivateKeySigner,
+    chain_id: Option<ChainId>,
+}
+
+impl EigenGadgetSigner {
+    pub fn new(signer: PrivateKeySigner, chain_id: Option<ChainId>) -> Self {
+        Self { signer, chain_id }
+    }
 }
 
 impl alloy_signer::Signer for EigenGadgetSigner {
@@ -133,21 +141,19 @@ impl alloy_signer::Signer for EigenGadgetSigner {
     }
 
     fn address(&self) -> Address {
-        println!("ADDRESS TEST");
-        panic!("Signer functions for EigenGadgetSigner are not yet implemented")
+        self.signer.address()
     }
 
     fn chain_id(&self) -> Option<ChainId> {
-        println!("CHAIN ID TEST");
-        panic!("Signer functions for EigenGadgetSigner are not yet implemented")
+        self.chain_id
     }
 
-    fn set_chain_id(&mut self, _chain_id: Option<ChainId>) {
-        println!("SET CHAIN ID TEST");
-        panic!("Signer functions for EigenGadgetSigner are not yet implemented")
+    fn set_chain_id(&mut self, chain_id: Option<ChainId>) {
+        self.chain_id = chain_id;
     }
 }
 
+/// Incredible Squaring AVS Node Config Struct - Contains all the configurations relevant to the AVS' Target Chain
 #[derive(Debug, Clone)]
 pub struct NodeConfig {
     pub node_api_ip_port_address: String,
@@ -177,16 +183,38 @@ impl Config for NodeConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct OperatorInfoService {}
+pub struct OperatorInfoService {
+    operator_info: OperatorInfo,
+    operator_id: OperatorId,
+    operator_address: Address,
+    config: NodeConfig,
+}
+
+impl OperatorInfoService {
+    pub fn new(
+        operator_info: OperatorInfo,
+        operator_id: OperatorId,
+        operator_address: Address,
+        config: NodeConfig,
+    ) -> Self {
+        Self {
+            operator_info,
+            operator_id,
+            operator_address,
+            config,
+        }
+    }
+}
 
 #[async_trait]
 impl OperatorInfoServiceTrait for OperatorInfoService {
     async fn get_operator_info(&self, _operator: Address) -> Result<Option<OperatorInfo>, String> {
-        todo!()
+        Ok(Some(self.operator_info.clone()))
     }
 }
 
 impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
+    /// Creates a new Operator from the given config, providers, and signer
     pub async fn new_from_config(
         config: NodeConfig,
         eth_client_http: T::PH,
@@ -200,7 +228,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
 
         let node_api = NodeApi::new(AVS_NAME, SEM_VER, &config.node_api_ip_port_address);
 
-        log::info!("About to read BLS key");
+        log::info!("Reading BLS key");
         let bls_key_password =
             std::env::var("OPERATOR_BLS_KEY_PASSWORD").unwrap_or_else(|_| "".to_string());
         let bls_keypair = KeyPair::read_private_key_from_file(
@@ -209,7 +237,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         )
         .map_err(OperatorError::from)?;
 
-        log::info!("About to read ECDSA key");
+        log::info!("Reading ECDSA key");
         let ecdsa_key_password =
             std::env::var("OPERATOR_ECDSA_KEY_PASSWORD").unwrap_or_else(|_| "".to_string());
         let ecdsa_secret_key = eigen_utils::crypto::ecdsa::read_key(
@@ -249,7 +277,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
         .await
         .map_err(|e| OperatorError::ContractManagerError(e.to_string()))?;
 
-        log::info!("About to build AVS Registry Contract Manager");
+        log::info!("Building AVS Registry Contract Manager");
         let avs_registry_contract_manager = AvsRegistryContractManager::build(
             Address::from_str(&config.incredible_squaring_service_manager_addr)
                 .map_err(|e| OperatorError::AddressError(e.to_string()))?,
