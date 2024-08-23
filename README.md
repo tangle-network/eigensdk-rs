@@ -1,6 +1,5 @@
 # EigenSDK-RS
 
-[![Validate PR](https://github.com/webb-tools/eigensdk-rs/actions/workflows/validate_pr.yml/badge.svg)](https://github.com/webb-tools/eigensdk-rs/actions/workflows/validate_pr.yml)
 [![Rust Version](https://img.shields.io/badge/rust-1.74.0%2B-blue.svg)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
