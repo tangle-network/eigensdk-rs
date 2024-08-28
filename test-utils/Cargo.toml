@@ -20,48 +20,21 @@ name = "tangle"
 path = "src/bin/tangle.rs"
 
 [dependencies]
-alloy-abi.workspace = true
-alloy-contract.workspace = true
 alloy-primitives.workspace = true
 alloy-provider.workspace = true
-alloy-pubsub.workspace = true
-alloy-rpc-client.workspace = true
-alloy-rpc-types.workspace = true
 alloy-sol-types.workspace = true
 alloy-signer.workspace = true
 alloy-signer-local = { workspace = true, features = ["keystore"] }
-alloy-transport-http.workspace = true
 alloy-transport-ws.workspace = true
-alloy-transport.workspace = true
-async-trait.workspace = true
-aws-sdk-kms.workspace = true
 
 eigen-contracts.workspace = true
 eigen-utils.workspace = true
 incredible-squaring-avs.workspace = true
 tangle-avs.workspace = true
-aws-kms.workspace = true
-#gadget-common = { workspace = true, default-features = false, features = ["default"] }
-# gadget-common = { workspace = true, features = ["tangle-testnet"] }
-
-foundry-common.workspace = true
-futures.workspace = true
-http-body-util.workspace = true
-hyper = { workspace = true, features = ["full"] }
 k256 = { workspace = true, features = ["expose-field"] }
-prometheus.workspace = true
-rand.workspace = true
-reqwest.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
 tokio.workspace = true
-ethabi = "18.0.0"
 anvil.workspace = true
 ethers.workspace = true
-
-#tokio = { workspace = true, features = ["full"] }
-alloy = { workspace = true, features = ["serde", "signers"] }
 alloy-rpc-types-eth.workspace = true
 #alloy-primitives = { workspace = true, features = ["rand"] }
 #alloy-signer-local.workspace = true
@@ -71,9 +44,4 @@ env_logger.workspace = true
 hex.workspace = true
 #lazy_static.workspace = true
 url.workspace = true
-#ark-ec.workspace = true
-#ark-ff.workspace = true
-ark-bn254.workspace = true
-sha3 = "0.10.8"
 nix = "0.28.0"
-lazy_static = "1.5.0"

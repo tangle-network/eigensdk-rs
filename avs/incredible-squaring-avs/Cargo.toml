@@ -10,44 +10,30 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-alloy-abi.workspace = true
 alloy-contract.workspace = true
 alloy-primitives.workspace = true
 alloy-provider.workspace = true
 alloy-pubsub.workspace = true
-alloy-rpc-client.workspace = true
 alloy-rpc-types.workspace = true
 alloy-sol-types.workspace = true
 alloy-signer.workspace = true
 alloy-signer-local = { workspace = true, features = ["keystore"] }
-alloy-transport-http.workspace = true
-alloy-transport-ws.workspace = true
 alloy-transport.workspace = true
 async-trait.workspace = true
-aws-sdk-kms.workspace = true
 
 eigen-contracts.workspace = true
 eigen-utils.workspace = true
-aws-kms.workspace = true
-#gadget-common = { workspace = true, default-features = false, features = ["default"] }
-# gadget-common = { workspace = true, features = ["tangle-testnet"] }
-
-foundry-common.workspace = true
-futures.workspace = true
 http-body-util.workspace = true
 hyper = { workspace = true, features = ["full"] }
 hex.workspace = true
 k256 = { workspace = true, features = ["expose-field"] }
 log.workspace = true
 prometheus.workspace = true
-rand.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
-env_logger.workspace = true
-ethabi = "18.0.0"
 
 [dev-dependencies]
 anvil.workspace = true

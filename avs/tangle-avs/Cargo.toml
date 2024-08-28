@@ -11,38 +11,19 @@ repository.workspace = true
 
 [dependencies]
 alloy-contract.workspace = true
-alloy-consensus.workspace = true
-alloy-network.workspace = true
 alloy-primitives.workspace = true
 alloy-provider = { workspace = true, features = ["hyper"] }
-alloy-pubsub.workspace = true
-alloy-rpc-client.workspace = true
-alloy-rpc-types.workspace = true
 alloy-sol-types.workspace = true
 alloy-signer.workspace = true
 alloy-signer-local.workspace = true
-alloy-transport-http.workspace = true
-alloy-transport-ws.workspace = true
 alloy-transport.workspace = true
-async-trait.workspace = true
-aws-sdk-kms.workspace = true
-
-eigen-contracts.workspace = true
 eigen-utils.workspace = true
-aws-kms.workspace = true
 
 hex.workspace = true
 #k256.workspace = true
 k256 = { workspace = true, features = ["ecdsa"] }
 log.workspace = true
-prometheus.workspace = true
-reqwest.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
-serde = { version = "1.0.203", features = ["derive"] }
-#gadget-common = { workspace = true, default-features = false, features = ["default"] }
-#gadget-executor = { workspace = true }
-env_logger = "0.10.2"
 
 [dev-dependencies]
 rand_core.workspace = true
