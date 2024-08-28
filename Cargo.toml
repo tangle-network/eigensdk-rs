@@ -30,9 +30,6 @@ test-utils = { path = "./test-utils" }
 incredible-squaring-avs = { path = "./avs/incredible-squaring-avs" }
 tangle-avs = { path = "./avs/tangle-avs" }
 
-gadget-common = { git = "https://github.com/webb-tools/gadget", default-features = false }
-gadget-executor = { git = "https://github.com/webb-tools/gadget", default-features = false }
-
 # ARK Libraries
 ark-std = { version = "0.4.0", default-features = false, features = ["print-trace", "std"] }
 ark-crypto-primitives = { version = "0.4.0", default-features = false }
@@ -137,6 +134,7 @@ ethers = "2.0.14"
 anvil = { git = "https://github.com/foundry-rs/foundry.git" }
 foundry-common = { git = "https://github.com/foundry-rs/foundry.git" }
 alloy = "0.2.1"
+revm = { version = "13.0.0", default-features = false }
 alloy-abi = "0.1.0"
 alloy-chains = "0.1.23"
 alloy-primitives = "0.7.7"

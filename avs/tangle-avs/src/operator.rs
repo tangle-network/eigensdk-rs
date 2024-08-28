@@ -334,9 +334,10 @@ impl<T: Config> Operator<T> {
         }
 
         log::info!("Starting Tangle Validator...");
-        gadget_executor::run_tangle_validator()
-            .await
-            .map_err(|e| OperatorError::OperatorStartError(e.to_string()))?;
+        // gadget_executor::run_tangle_validator()
+        //     .await
+        //     .map_err(|e| OperatorError::OperatorStartError(e.to_string()))?;
+        // TODO: Start Tangle Validator without gadget executor
 
         Ok(())
     }

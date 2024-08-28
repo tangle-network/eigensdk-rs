@@ -40,8 +40,8 @@ reqwest.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 serde = { version = "1.0.203", features = ["derive"] }
-gadget-common = { workspace = true, default-features = false, features = ["default"] }
-gadget-executor = { workspace = true }
+#gadget-common = { workspace = true, default-features = false, features = ["default"] }
+#gadget-executor = { workspace = true }
 env_logger = "0.10.2"
 
 [dev-dependencies]
