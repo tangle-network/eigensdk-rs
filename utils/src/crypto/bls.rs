@@ -89,6 +89,12 @@ impl G1Point {
         ser_buf
     }
 
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, AvsError> {
+        let bytes =
+            Self::deserialize_compressed(bytes).map_err(|e| AvsError::KeyError(e.to_string()))?;
+        Ok(bytes)
+    }
+
     pub fn neg(&self) -> Self {
         let affine = g1_point_to_ark_point(self);
         let neg_affine = affine.neg();
