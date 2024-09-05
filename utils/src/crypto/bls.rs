@@ -96,15 +96,13 @@ impl G1Point {
     }
 
     pub fn generator() -> Self {
-        // let gen = G1Affine::generator();
-        let gen = get_g1_generator().unwrap();
+        let gen = get_g1_generator();
         ark_point_to_g1_point(&gen)
     }
 
     pub fn add(&mut self, other: &G1Point) {
         let affine_p1 = g1_point_to_ark_point(self);
         let affine_p2 = g1_point_to_ark_point(other);
-        // let pt = (affine_p1 + affine_p2).into_affine();
         let pt = affine_p1.add(affine_p2);
         *self = g1_projective_to_g1_point(&pt);
     }
@@ -207,7 +205,7 @@ impl G2Point {
     /// Uses the fixed [G2Affine::generator] to generate a [G2Point].
     pub fn generator() -> Self {
         // let gen = G2Affine::generator();
-        let gen = get_g2_generator().unwrap();
+        let gen = get_g2_generator();
         ark_point_to_g2_point(&gen)
     }
 
@@ -354,7 +352,7 @@ impl Signature {
         pubkey: &G2Point,
         pre_hashed_message: &[u8; 32],
     ) -> Result<bool, AvsError> {
-        let g2_gen = ark_point_to_g2_point(&get_g2_generator()?);
+        let g2_gen = ark_point_to_g2_point(&get_g2_generator());
         let msg_affine = map_to_curve(pre_hashed_message).into_affine();
         let msg_point = ark_point_to_g1_point(&msg_affine);
         let neg_sig = self.g1_point.neg();
@@ -366,7 +364,7 @@ impl Signature {
         let q_projective = [g2_point_to_ark_point(&q[0]), g2_point_to_ark_point(&q[1])];
 
         // If Pairing Left and Right are equal, then the signature is valid as well
-        let e1 = Bn254::pairing(self.g1_point.to_ark_g1(), get_g2_generator().unwrap());
+        let e1 = Bn254::pairing(self.g1_point.to_ark_g1(), get_g2_generator());
         let e2 = Bn254::pairing(msg_affine, g2_point_to_ark_point(&pubkey.clone()));
         log::info!("Are e1 and e2 pairings equal? {:?}", e1 == e2);
 
@@ -384,27 +382,21 @@ pub struct KeyPair {
 }
 
 impl KeyPair {
-    pub fn new(sk: PrivateKey) -> Result<Self, AvsError> {
-        let pub_key_point_result = mul_by_generator_g1(sk);
-
-        match pub_key_point_result {
-            Ok(pub_key_point) => Ok(Self {
-                priv_key: sk,
-                pub_key: pub_key_point,
-            }),
-            Err(_) => Err(AvsError::KeyError(
-                "Failed to generate new key pair".to_string(),
-            )),
+    pub fn new(sk: PrivateKey) -> Self {
+        let pub_key_point = mul_by_generator_g1(sk);
+        Self {
+            priv_key: sk,
+            pub_key: pub_key_point,
         }
     }
 
-    pub fn from_string(s: String) -> Result<Self, AvsError> {
+    pub fn from_string(s: String) -> Self {
         let bigint = hex_string_to_biginteger256(&s);
         let private_key = Fr::from(bigint);
         KeyPair::new(private_key)
     }
 
-    pub fn gen_random() -> Result<Self, AvsError> {
+    pub fn gen_random() -> Self {
         let mut rng = rand::thread_rng();
         let key = Fr::rand(&mut rng);
         KeyPair::new(key)
@@ -569,7 +561,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_keypair_generation() {
-        let keypair = KeyPair::gen_random().unwrap();
+        let keypair = KeyPair::gen_random();
 
         // Check that the public key is not zero
         assert_ne!(keypair.pub_key, G1Projective::zero());
@@ -577,7 +569,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_signature_generation() {
-        let keypair = KeyPair::gen_random().unwrap();
+        let keypair = KeyPair::gen_random();
 
         let message = [0u8; 32];
         let signature = keypair.sign_message(&message);
@@ -606,7 +598,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_signature_verification() {
-        let keypair = KeyPair::gen_random().unwrap();
+        let keypair = KeyPair::gen_random();
         let pub_key_g2 = keypair.get_pub_key_g2();
         let mut message = [0u8; 32];
         thread_rng().fill(&mut message);
@@ -627,7 +619,7 @@ mod tests {
     #[tokio::test]
     async fn test_signature_verification_invalid() {
         let mut rng = thread_rng();
-        let keypair = KeyPair::gen_random().unwrap();
+        let keypair = KeyPair::gen_random();
 
         let mut message = [0u8; 32];
         rand::thread_rng().fill(&mut message);
@@ -658,182 +650,8 @@ mod tests {
         let keypair_result_from_string = KeyPair::from_string(hex_string);
         let keypair_result_normal = KeyPair::new(Fr::from(bigint));
 
-        let keypair_from_string = keypair_result_from_string.unwrap();
-        let keypair_from_new = keypair_result_normal.unwrap();
+        let keypair_from_string = keypair_result_from_string;
+        let keypair_from_new = keypair_result_normal;
         assert_eq!(keypair_from_new.priv_key, keypair_from_string.priv_key);
     }
-    //
-    // #[tokio::test]
-    // async fn test_convert_to_g1_point() {
-    //     let x_point = F::from_str(
-    //         "17709620697113958145616918533531128159269167719799793368595970620022661612059",
-    //     )
-    //         .unwrap();
-    //     let y_point = F::from_str(
-    //         "9890439522434691655532127414660267222813910180198976870423582442696952349816",
-    //     )
-    //         .unwrap();
-    //     let g1_affine = G1Affine::new(x_point, y_point);
-    //
-    //     let alloy_g1_point = ark_point_to_g1_point(&g1_affine);
-    //     assert_eq!(
-    //         alloy_g1_point.x,
-    //         U256::from_str(
-    //             "17709620697113958145616918533531128159269167719799793368595970620022661612059"
-    //         )
-    //             .unwrap()
-    //     );
-    //     assert_eq!(
-    //         alloy_g1_point.y,
-    //         U256::from_str(
-    //             "9890439522434691655532127414660267222813910180198976870423582442696952349816"
-    //         )
-    //             .unwrap()
-    //     );
-    // }
-    //
-    // #[tokio::test]
-    // async fn test_convert_to_g2_point() {
-    //     let x_point_c0 = F::from_str(
-    //         "6834287759893774453556191528501556195232162436167606874229072410417955767882",
-    //     )
-    //         .unwrap();
-    //     let x_point_c1 = F::from_str(
-    //         "15529400123788596166111036611862227541174221446291015207340396747864347375335",
-    //     )
-    //         .unwrap();
-    //
-    //     let y_point_c0 = F::from_str(
-    //         "7616309349481520605447660298084926776417001188005125143383153219707218450524",
-    //     )
-    //         .unwrap();
-    //     let y_point_c1 = F::from_str(
-    //         "19775028091101520702581412350510183088819198056772055625089714355379667714558",
-    //     )
-    //         .unwrap();
-    //
-    //     let x_point = ark_bn254::Fq2::new(x_point_c0, x_point_c1);
-    //     let y_point = ark_bn254::Fq2::new(y_point_c0, y_point_c1);
-    //
-    //     let g2_affine = G2Affine::new(x_point, y_point);
-    //
-    //     let alloy_g2_point = ark_point_to_g2_point(&g2_affine);
-    //     assert_eq!(
-    //         alloy_g2_point.x[0],
-    //         U256::from_str(
-    //             "15529400123788596166111036611862227541174221446291015207340396747864347375335"
-    //         )
-    //             .unwrap()
-    //     );
-    //     assert_eq!(
-    //         alloy_g2_point.x[1],
-    //         U256::from_str(
-    //             "6834287759893774453556191528501556195232162436167606874229072410417955767882"
-    //         )
-    //             .unwrap()
-    //     );
-    //     assert_eq!(
-    //         alloy_g2_point.y[0],
-    //         U256::from_str(
-    //             "19775028091101520702581412350510183088819198056772055625089714355379667714558"
-    //         )
-    //             .unwrap()
-    //     );
-    //     assert_eq!(
-    //         alloy_g2_point.y[1],
-    //         U256::from_str(
-    //             "7616309349481520605447660298084926776417001188005125143383153219707218450524"
-    //         )
-    //             .unwrap()
-    //     );
-    // }
-    //
-    // #[tokio::test]
-    // async fn test_bls_key_pair() {
-    //     let bls_priv_key =
-    //         "12248929636257230549931416853095037629726205319386239410403476017439825112537";
-    //     let bls_key_pair = KeyPair::new(PrivateKey::from_str(bls_priv_key).unwrap()).unwrap();
-    //
-    //     assert_eq!(
-    //         U256::from_limbs(*bls_key_pair.get_pub_key_g1().x.as_limbs()),
-    //         U256::from_str(
-    //             "277950648056014144722774518899051149098728246263316284984520891067822832300"
-    //         )
-    //             .unwrap()
-    //     );
-    //     assert_eq!(
-    //         U256::from_limbs(*bls_key_pair.get_pub_key_g1().y.as_limbs()),
-    //         U256::from_str(
-    //             "16927236637669640540790285431111034664564710839671197540688155537113438534238"
-    //         )
-    //             .unwrap()
-    //     );
-    // }
-    //
-    // #[test]
-    // fn test_map_to_curve() {
-    //     let message: [u8; 32] = [
-    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    //         25, 26, 27, 28, 29, 30, 31, 32,
-    //     ];
-    //     let g1 = crate::crypto::bn254::map_to_curve(&message);
-    //
-    //     assert_eq!(
-    //         U256::from_limbs(g1.x.into_bigint().0),
-    //         U256::from_str(
-    //             "455867356320691211509944977504407603390036387149619137164185182714736811811"
-    //         )
-    //             .unwrap()
-    //     );
-    //     assert_eq!(
-    //         U256::from_limbs(g1.y.into_bigint().0),
-    //         U256::from_str(
-    //             "9802125641729881429496664198939823213610051907104384160271670136040620850981"
-    //         )
-    //             .unwrap()
-    //     );
-    // }
-    //
-    // #[test]
-    // fn test_sign_message() {
-    //     let message: [u8; 32] = [
-    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    //         25, 26, 27, 28, 29, 30, 31, 32,
-    //     ];
-    //     let bls_priv_key =
-    //         "12248929636257230549931416853095037629726205319386239410403476017439825112537";
-    //     let bls_key_pair = KeyPair::new(PrivateKey::from_str(bls_priv_key).unwrap()).unwrap();
-    //
-    //
-    //     let signature = bls_key_pair.sign_message(&message);
-    //     assert_eq!(
-    //         U256::from_limbs(*signature.g1_point.x.as_limbs()),
-    //         U256::from_str(
-    //             "6125087140203962697351933212367898471377426213402772883153680722977416765651"
-    //         )
-    //             .unwrap()
-    //     );
-    //     assert_eq!(
-    //         U256::from_limbs(*signature.g1_point.y.as_limbs()),
-    //         U256::from_str(
-    //             "19120302240465611628345095276448175199636936878728446037184749040811421969742"
-    //         )
-    //             .unwrap()
-    //     );
-    // }
-    //
-    // #[test]
-    // fn test_verify_message() {
-    //     let message: [u8; 32] = [
-    //         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    //         25, 26, 27, 28, 29, 30, 31, 32,
-    //     ];
-    //     let bls_priv_key =
-    //         "12248929636257230549931416853095037629726205319386239410403476017439825112537";
-    //     let bls_key_pair = KeyPair::new(PrivateKey::from_str(bls_priv_key).unwrap()).unwrap();
-    //
-    //     let signature = bls_key_pair.sign_message(&message);
-    //
-    //     assert!(signature.verify(&bls_key_pair.get_pub_key_g2(), &message).unwrap())
-    // }
 }

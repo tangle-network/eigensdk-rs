@@ -1,4 +1,3 @@
-use crate::types::AvsError;
 use alloy_primitives::U256;
 use ark_bn254::Fq as F;
 use ark_bn254::{Fr, G1Affine, G1Projective, G2Affine, G2Projective};
@@ -66,44 +65,27 @@ pub fn biginteger256_to_u256(bi: BigInteger256) -> U256 {
     U256::from_be_slice(&s)
 }
 
-pub fn get_g1_generator() -> Result<G1Affine, AvsError> {
-    let g1_affine = G1Affine::new(ark_bn254::g1::G1_GENERATOR_X, ark_bn254::g1::G1_GENERATOR_Y);
-    Ok(g1_affine)
+pub fn get_g1_generator() -> G1Affine {
+    G1Affine::new(ark_bn254::g1::G1_GENERATOR_X, ark_bn254::g1::G1_GENERATOR_Y)
 }
 
-pub fn get_g2_generator() -> Result<G2Affine, AvsError> {
-    let g2_affine = G2Affine::new(ark_bn254::g2::G2_GENERATOR_X, ark_bn254::g2::G2_GENERATOR_Y);
-    Ok(g2_affine)
+pub fn get_g2_generator() -> G2Affine {
+    G2Affine::new(ark_bn254::g2::G2_GENERATOR_X, ark_bn254::g2::G2_GENERATOR_Y)
 }
 
-pub fn get_g2_generator_neg() -> Result<G2Affine, AvsError> {
-    let g2_gen = get_g2_generator()?;
-    Ok(g2_gen.neg())
+pub fn get_g2_generator_neg() -> G2Affine {
+    let g2_gen = get_g2_generator();
+    g2_gen.neg()
 }
 
-pub fn mul_by_generator_g1(pvt_key: Fr) -> Result<G1Projective, AvsError> {
-    let g1_gen_result = get_g1_generator();
-
-    match g1_gen_result {
-        Ok(g1_gen) => {
-            // let s: G1Projective = g1_gen.into();
-            Ok(g1_gen.mul_bigint(pvt_key.0))
-        }
-        Err(_) => Err(AvsError::KeyError(
-            "Invalid G1 Generator Result".to_string(),
-        )),
-    }
+pub fn mul_by_generator_g1(pvt_key: Fr) -> G1Projective {
+    let g1_gen = get_g1_generator();
+    g1_gen.mul_bigint(pvt_key.0)
 }
 
-pub fn mul_by_generator_g2(pvt_key: Fr) -> Result<G2Projective, AvsError> {
-    let g2_gen_result = get_g2_generator();
-
-    match g2_gen_result {
-        Ok(g2_gen) => Ok(g2_gen.mul_bigint(pvt_key.0)),
-        Err(_) => Err(AvsError::KeyError(
-            "Invalid G2 Generator Result".to_string(),
-        )),
-    }
+pub fn mul_by_generator_g2(pvt_key: Fr) -> G2Projective {
+    let g2_gen = get_g2_generator();
+    g2_gen.mul_bigint(pvt_key.0)
 }
 
 #[cfg(test)]
