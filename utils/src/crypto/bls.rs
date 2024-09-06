@@ -32,7 +32,7 @@ struct EncryptedBLSKeyJSONV3 {
     pub crypto: serde_json::Value, // Adjust this type to match your specific encryption structure
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct G1Point {
     pub x: U256,
     pub y: U256,
