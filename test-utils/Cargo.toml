@@ -26,7 +26,6 @@ alloy-sol-types.workspace = true
 alloy-signer.workspace = true
 alloy-signer-local = { workspace = true, features = ["keystore"] }
 alloy-transport-ws.workspace = true
-
 eigen-contracts.workspace = true
 eigen-utils.workspace = true
 incredible-squaring-avs.workspace = true
@@ -36,12 +35,8 @@ tokio.workspace = true
 anvil.workspace = true
 ethers.workspace = true
 alloy-rpc-types-eth.workspace = true
-#alloy-primitives = { workspace = true, features = ["rand"] }
-#alloy-signer-local.workspace = true
 log.workspace = true
 env_logger.workspace = true
-#getrandom.workspace = true
 hex.workspace = true
-#lazy_static.workspace = true
 url.workspace = true
-nix = "0.28.0"
+nix.workspace = true
