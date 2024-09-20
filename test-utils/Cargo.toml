@@ -15,10 +15,6 @@ path = "src/lib.rs"
 name = "incredible_squaring"
 path = "src/bin/incredible_squaring.rs"
 
-[[bin]]
-name = "tangle"
-path = "src/bin/tangle.rs"
-
 [dependencies]
 alloy-primitives.workspace = true
 alloy-provider.workspace = true
@@ -29,7 +25,6 @@ alloy-transport-ws.workspace = true
 eigen-contracts.workspace = true
 eigen-utils.workspace = true
 incredible-squaring-avs.workspace = true
-tangle-avs.workspace = true
 k256 = { workspace = true, features = ["expose-field"] }
 tokio.workspace = true
 anvil.workspace = true

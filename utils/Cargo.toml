@@ -43,6 +43,5 @@ rand.workspace = true
 uuid = { workspace = true, features = ["v4", "serde"] }
 sha3 = "0.10.8"
 k256.workspace = true
-#gadget-common.workspace = true
 aes = "0.8.4"
 ctr = "0.9.2"

@@ -10,9 +10,10 @@ use tokio::sync::Mutex;
 
 use crate::avs::subscriber::IncredibleSquaringSubscriber;
 use crate::avs::writer::IncredibleSquaringWriter;
-use crate::avs::IncredibleSquaringTaskManager::{NewTaskCreated, Task, TaskResponded};
+use crate::avs::IncredibleSquaringTaskManager::{NewTaskCreated, TaskResponded};
 use crate::avs::{
-    IncredibleSquaringContractManager, IncredibleSquaringTaskManager, SetupConfig, TaskResponseData,
+    Bn254, IncredibleSquaringContractManager, IncredibleSquaringTaskManager, SetupConfig, Task,
+    TaskResponseData,
 };
 
 #[derive(Clone)]
@@ -141,7 +142,7 @@ impl<T: Config> Challenger<T> {
     async fn get_non_signing_operator_pub_keys(
         &self,
         v_log: &Log<TaskResponded>,
-    ) -> Result<Vec<IncredibleSquaringTaskManager::G1Point>, AvsError> {
+    ) -> Result<Vec<Bn254::G1Point>, AvsError> {
         log::info!("vLog.Raw is: {:?}", v_log.data());
 
         // Get the nonSignerStakesAndSignature

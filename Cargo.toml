@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "avs/incredible-squaring-avs",
-    "avs/tangle-avs",
     "aws",
     "contracts",
     "fireblocks-client",
@@ -27,7 +26,6 @@ test-utils = { path = "./test-utils" }
 
 # AVS examples
 incredible-squaring-avs = { path = "./avs/incredible-squaring-avs" }
-tangle-avs = { path = "./avs/tangle-avs" }
 
 # ARK Libraries
 ark-std = { version = "0.4.0", default-features = false, features = ["print-trace", "std"] }
@@ -107,7 +105,8 @@ sqlx = "=0.7.3"
 postcard = "1.0.8"
 sha2 = "0.10.8"
 derivation-path = "0.2.0"
-libp2p = { git = "https://github.com/libp2p/rust-libp2p/", default-features = false, rev = "3644879956b6ab93b8d23553a33e8fdb838f576f" }
+#libp2p = { git = "https://github.com/libp2p/rust-libp2p/", default-features = false, rev = "3644879956b6ab93b8d23553a33e8fdb838f576f" }
+libp2p = { git = "https://github.com/libp2p/rust-libp2p/", default-features = false }
 structopt = "0.3.26"
 env_logger = "0.11.3"
 regex = "1.10.4"
@@ -131,38 +130,38 @@ http-body-util = "0.1.1"
 ethers = "2.0.14"
 nix = "0.29.0"
 
-anvil = { git = "https://github.com/foundry-rs/foundry.git" }
-foundry-common = { git = "https://github.com/foundry-rs/foundry.git" }
-alloy = "0.2.1"
+anvil = { git = "https://github.com/foundry-rs/foundry.git", branch = "master" }
+foundry-common = { git = "https://github.com/foundry-rs/foundry.git", branch = "master" }
+alloy = "0.3.6"
 revm = { version = "13.0.0", default-features = false }
 alloy-abi = "0.1.0"
 alloy-chains = "0.1.23"
-alloy-primitives = "0.7.7"
-alloy-dyn-abi = "0.7.7"
-alloy-sol-types = "0.7.7"
+alloy-primitives = "0.8.3"
+alloy-dyn-abi = "0.8.3"
+alloy-sol-types = { version = "0.8.3", default-features = false }
 alloy-rlp = "0.3.7"
-alloy-trie = "0.4.1"
-alloy-rpc-types = { version = "0.2.0" }
-alloy-rpc-types-anvil = { version = "0.2.0" }
-alloy-rpc-types-eth = { version = "0.2.0" }
-alloy-rpc-types-trace = { version = "0.2.0" }
-alloy-rpc-types-engine = { version = "0.2.0" }
-alloy-genesis = { version = "0.2.0" }
-alloy-node-bindings = { version = "0.2.0" }
-alloy-provider = { version = "0.2.0", default-features = false, features = [
+alloy-trie = "0.5.3"
+alloy-rpc-types = { version = "0.3.6" }
+alloy-rpc-types-anvil = { version = "0.3.6" }
+alloy-rpc-types-eth = { version = "0.3.6" }
+alloy-rpc-types-trace = { version = "0.3.6" }
+alloy-rpc-types-engine = { version = "0.3.6" }
+alloy-genesis = { version = "0.3.6" }
+alloy-node-bindings = { version = "0.3.6" }
+alloy-provider = { version = "0.3.6", default-features = false, features = [
     "reqwest","ws"
 ] }
-alloy-pubsub = { version = "0.2.0" }
-alloy-transport-http = { version = "0.2.0" }
-alloy-eips = { version = "0.2.0", default-features = false }
-alloy-signer = { version = "0.2.0" }
-alloy-signer-local = { version = "0.2.0" }
-alloy-network = { version = "0.2.0" }
-alloy-consensus = { version = "0.2.0" }
-alloy-contract = { version = "0.2.0" }
-alloy-transport =  { version = "0.2.0" }
-alloy-transport-ws = { version = "0.2.0" }
-alloy-rpc-client = { version = "0.2.0" }
+alloy-pubsub = { version = "0.3.6" }
+alloy-transport-http = { version = "0.3.6" }
+alloy-eips = { version = "0.3.6", default-features = false }
+alloy-signer = { version = "0.3.6" }
+alloy-signer-local = { version = "0.3.6" }
+alloy-network = { version = "0.3.6" }
+alloy-consensus = { version = "0.3.6" }
+alloy-contract = { version = "0.3.6" }
+alloy-transport =  { version = "0.3.6" }
+alloy-transport-ws = { version = "0.3.6" }
+alloy-rpc-client = { version = "0.3.6" }
 
 # WebAssembly
 wasmtime = { version = "8.0.1", default-features = false }
@@ -183,4 +182,4 @@ eigen-contracts.workspace = true
 eigen-utils.workspace = true
 fireblocks-client.workspace = true
 incredible-squaring-avs.workspace = true
-tangle-avs.workspace = true
+test-utils.workspace = true

@@ -1,6 +1,7 @@
 use super::{Erc20Mock, IncredibleSquaringContractManager, IncredibleSquaringTaskManager};
 use alloy_primitives::{Address, Bytes, FixedBytes};
 
+use super::{NonSignerStakesAndSignature, QuorumStakeTotals};
 use async_trait::async_trait;
 use eigen_utils::{types::AvsError, Config};
 
@@ -13,8 +14,8 @@ pub trait IncredibleSquaringReader {
         msg_hash: FixedBytes<32>,
         quorum_numbers: Bytes,
         reference_block_number: u32,
-        non_signer_stakes_and_signature: IncredibleSquaringTaskManager::NonSignerStakesAndSignature,
-    ) -> Result<IncredibleSquaringTaskManager::QuorumStakeTotals, AvsError>;
+        non_signer_stakes_and_signature: NonSignerStakesAndSignature,
+    ) -> Result<QuorumStakeTotals, AvsError>;
 
     async fn get_erc20_mock(&self, token_addr: Address) -> Result<Self::Erc20Mock, AvsError>;
 }
@@ -28,8 +29,8 @@ impl<T: Config> IncredibleSquaringReader for IncredibleSquaringContractManager<T
         msg_hash: FixedBytes<32>,
         quorum_numbers: Bytes,
         reference_block_number: u32,
-        non_signer_stakes_and_signature: IncredibleSquaringTaskManager::NonSignerStakesAndSignature,
-    ) -> Result<IncredibleSquaringTaskManager::QuorumStakeTotals, AvsError> {
+        non_signer_stakes_and_signature: NonSignerStakesAndSignature,
+    ) -> Result<QuorumStakeTotals, AvsError> {
         let task_manager = IncredibleSquaringTaskManager::new(
             self.task_manager_addr,
             self.eth_client_http.clone(),

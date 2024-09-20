@@ -28,7 +28,7 @@ impl AggregatorRpcClient {
     async fn dial_aggregator_rpc_client(&self) -> Result<(), Box<dyn std::error::Error>> {
         let response = self
             .client
-            .get(&format!("http://{}/", self.aggregator_ip_port_addr))
+            .get(format!("http://{}/", self.aggregator_ip_port_addr))
             .send()
             .await?;
         log::info!("Dialing aggregator RPC client. Response: {:?}", response);
