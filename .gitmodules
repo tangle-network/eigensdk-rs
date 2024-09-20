@@ -10,9 +10,3 @@
 [submodule "avs/incredible-squaring-avs/contracts/lib/eigenlayer-middleware"]
 	path = avs/incredible-squaring-avs/contracts/lib/eigenlayer-middleware
 	url = https://github.com/Layr-Labs/eigenlayer-middleware
-[submodule "avs/tangle-avs/contracts/lib/forge-std"]
-	path = avs/tangle-avs/contracts/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "avs/tangle-avs/contracts/lib/eigenlayer-middleware"]
-	path = avs/tangle-avs/contracts/lib/eigenlayer-middleware
-	url = https://github.com/Layr-Labs/eigenlayer-middleware

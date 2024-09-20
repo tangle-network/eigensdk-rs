@@ -5,7 +5,6 @@ DIR0="./contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts"
 DIR1="./contracts/lib/eigenlayer-middleware"
 DIR2="./contracts"
 DIR3="./avs/incredible-squaring-avs/contracts"
-DIR4="./avs/tangle-avs/contracts"
 
 # Function to run forge commands in a directory
 run_forge_commands() {
@@ -21,4 +20,3 @@ run_forge_commands "$DIR0"
 run_forge_commands "$DIR1"
 run_forge_commands "$DIR2"
 run_forge_commands "$DIR3"
-run_forge_commands "$DIR4"

@@ -8,7 +8,6 @@ fn main() {
         "./../contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts",
         "./../contracts/lib/eigenlayer-middleware",
         "./../contracts",
-        "./../avs/tangle-avs/contracts",
         "./../avs/incredible-squaring-avs/contracts",
     ];
 
