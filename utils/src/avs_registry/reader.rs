@@ -202,7 +202,13 @@ impl<T: Config> AvsRegistryChainReaderTrait for AvsRegistryContractManager<T> {
 
         let stake_registry =
             StakeRegistry::new(self.stake_registry_addr, self.eth_client_http.clone());
-        let quorums = bitmap_to_quorum_ids(&quorum_bitmap);
+        let quorum_bitmap_limbs = quorum_bitmap.as_limbs();
+        let quorums = bitmap_to_quorum_ids(&U256::from_limbs([
+            quorum_bitmap_limbs[0],
+            quorum_bitmap_limbs[1],
+            quorum_bitmap_limbs[2],
+            0,
+        ]));
         let mut quorum_stakes = HashMap::new();
         for quorum in quorums {
             let stake = stake_registry

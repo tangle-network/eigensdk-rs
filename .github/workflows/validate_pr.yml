@@ -89,7 +89,6 @@ jobs:
       matrix:
         package: [
           test-utils,
-          tangle-avs,
           incredible-squaring-avs,
           eigen-utils,
         ]

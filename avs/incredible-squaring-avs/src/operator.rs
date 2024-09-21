@@ -3,7 +3,7 @@ use crate::aggregator::Aggregator;
 use crate::avs::subscriber::IncredibleSquaringSubscriber;
 use crate::avs::{
     IncredibleSquaringContractManager, IncredibleSquaringTaskManager, SetupConfig,
-    SignedTaskResponse,
+    SignedTaskResponse, TaskResponse,
 };
 use crate::get_task_response_digest;
 use crate::rpc_client::AggregatorRpcClient;
@@ -446,7 +446,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
     pub fn process_new_task_created_log(
         &self,
         new_task_created_log: &Log<IncredibleSquaringTaskManager::NewTaskCreated>,
-    ) -> IncredibleSquaringTaskManager::TaskResponse {
+    ) -> TaskResponse {
         log::debug!("Received new task: {:?}", new_task_created_log);
         log::info!("Received new task: numberToBeSquared={}, taskIndex={}, taskCreatedBlock={}, quorumNumbers={}, QuorumThresholdPercentage={}",
             new_task_created_log.inner.task.numberToBeSquared,
@@ -460,7 +460,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
             .task
             .numberToBeSquared
             .pow(U256::from(2));
-        IncredibleSquaringTaskManager::TaskResponse {
+        TaskResponse {
             referenceTaskIndex: new_task_created_log.inner.taskIndex,
             numberSquared: number_squared,
         }
@@ -468,7 +468,7 @@ impl<T: Config, I: OperatorInfoServiceTrait> Operator<T, I> {
 
     pub fn sign_task_response(
         &self,
-        task_response: &IncredibleSquaringTaskManager::TaskResponse,
+        task_response: &TaskResponse,
     ) -> Result<SignedTaskResponse, OperatorError> {
         let task_response_hash = get_task_response_digest(task_response);
         let bls_signature = self.bls_keypair.sign_message(&task_response_hash);

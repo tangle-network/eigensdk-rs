@@ -3,10 +3,7 @@ use alloy_primitives::{address, Address, Bytes, Keccak256, U256};
 use alloy_provider::ProviderBuilder;
 use alloy_sol_types::{abi, SolValue};
 use anvil::spawn;
-use eigen_contracts::{
-    RegistryCoordinator::{OperatorSetParam, StrategyParams},
-    *,
-};
+use eigen_contracts::{OperatorSetParam, StrategyParams, *};
 use incredible_squaring_avs::avs::{
     IncredibleSquaringServiceManager, IncredibleSquaringTaskManager,
 };
@@ -424,15 +421,16 @@ pub async fn run_incredible_squaring_testnet() -> ContractAddresses {
         });
     }
     // Set to 0 for each quorum
-    let mut quorums_minimum_stake = Vec::<u128>::new();
+    let mut quorums_minimum_stake = Vec::<alloy_primitives::Uint<96, 2>>::new();
     let mut quorums_strategy_params = Vec::<Vec<StrategyParams>>::new();
     for j in 0..number_of_quorums {
         quorums_strategy_params.push(Vec::<StrategyParams>::new());
-        quorums_minimum_stake.push(0);
+        let minimum_stake = alloy_primitives::Uint::<96, 2>::from(0);
+        quorums_minimum_stake.push(minimum_stake);
         for _k in 0..number_of_strategies {
             quorums_strategy_params[j].push(StrategyParams {
                 strategy: strategies[j],
-                multiplier: 1,
+                multiplier: alloy_primitives::aliases::U96::from(1),
             });
         }
     }

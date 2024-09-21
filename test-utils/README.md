@@ -39,28 +39,18 @@ To rebuild the contracts in the AVS directory:
 
 ### Test Binaries
 
-To run the included Testnets as binaries, build the project and then run the testnet you need:
+To run the included Testnet as a binary, build the project and then run the testnet:
 ```bash
 cargo build -r
 ./target/release/incredible-squaring
 ```
-or
-```bash
-cargo build -r
-./target/release/tangle
-```
+
 
 ---
 
 ### Cargo tests
 
-To run the tests for the included AVSs (from the test-utils directory):
-
-#### Tangle
-```bash
-# To run the testnet and test connecting an Operator to it
-cargo test -p test-utils test_tangle_full
-```
+To run the test for the included AVS (from the test-utils directory):
 
 #### Incredible Squaring
 ```bash

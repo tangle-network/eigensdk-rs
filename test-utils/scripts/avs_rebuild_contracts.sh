@@ -2,7 +2,6 @@
 
 # Define the directories
 DIR1="./avs/incredible-squaring-avs/contracts"
-DIR2="./avs/tangle-avs/contracts"
 
 # Function to run forge commands in a directory
 run_forge_commands() {
@@ -16,6 +15,5 @@ run_forge_commands() {
 
 # Run forge commands in both directories
 run_forge_commands "$DIR1"
-run_forge_commands "$DIR2"
 
 echo "Rebuilt all AVS Smart Contracts!"

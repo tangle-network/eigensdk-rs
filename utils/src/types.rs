@@ -12,7 +12,6 @@ use ark_serialize::CanonicalSerialize;
 use ark_serialize::Compress;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
 use thiserror::Error;
 
 use crate::crypto::bls::KeyPair;
@@ -258,4 +257,6 @@ pub enum AvsError {
     SerdeJsonError(#[from] serde_json::Error),
     #[error("Transaction with (hash: {0}) not found")]
     TransactionNotFound(alloy_primitives::TxHash),
+    #[error("error in pending transaction")]
+    PendingTransactionError(#[from] alloy_provider::PendingTransactionError),
 }
