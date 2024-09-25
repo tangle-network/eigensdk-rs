@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use std::env;
 use alloy_primitives::ChainId;
 use alloy_provider::Provider;
 use alloy_provider::ProviderBuilder;
@@ -12,6 +11,7 @@ use eigen_utils::types::{operator_id_from_key_pair, OperatorInfo, OperatorPubkey
 use incredible_squaring_avs::operator::*;
 use k256::ecdsa::SigningKey;
 use k256::elliptic_curve::SecretKey;
+use std::env;
 use test_utils::anvil::testnet::incredible_squaring::*;
 
 #[tokio::main]
@@ -20,7 +20,9 @@ async fn main() {
     let contract_addresses = run_incredible_squaring_testnet().await;
     println!("Contract Addresses: {contract_addresses}");
     println!("The Incredible Squaring Testnet is now running. Press Ctrl-C to exit...");
-    tokio::signal::ctrl_c().await.expect("Failed to listen for Ctrl-C");
+    tokio::signal::ctrl_c()
+        .await
+        .expect("Failed to listen for Ctrl-C");
 }
 
 pub fn env_init() {
