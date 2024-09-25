@@ -28,7 +28,6 @@ It should be noted that this SDK is still being actively developed and has not u
 ## Features
 
 - **Full Eigenlayer Integration**: Provides all the robust functionalities of eigensdk-go, now with the performance benefits of Rust.
-- **Seamless Tangle Interoperability**: Easily integrates Tangle into Eigenlayer AVSs, allowing a Tangle Validator to live in an AVS.
 - **Unlimited Customization**: Equipped with all the tools needed to build custom AVSs, including those that leverage our advanced Gadget capabilities.
 - **High Performance**: Developed with Rust to deliver superior efficiency and speed, ensuring your applications run optimally.
 - **Enhanced Type Safety**: Takes advantage of Rust's strong type system to create more reliable and maintainable code.
@@ -100,22 +99,18 @@ To run the tests from the command line, you can run the following commands in th
 
 3. Run the test for the AVS you would like to test.
 
-Tangle AVS
-```bash
-cargo test -p test-utils test_tangle_full
-```
 Incredible Squaring AVS
 ```bash
 cargo test -p test-utils test_incredible_squaring_full
 ```
 
-These full tests start a local Anvil testnet, deploy all the required contracts to it, and then start an operator.
+The full test starts a local Anvil testnet, deploys all the required contracts to it, and then starts an operator.
 
 ### Running the Testnets as binaries
 
 1. Build
 ```bash
-cargo build --release
+cargo build --release -p test-utils
 ```
 
 2. Run
@@ -123,11 +118,6 @@ cargo build --release
 Incredible Squaring AVS's Testnet
 ```bash
 ./target/release/incredible-squaring
-```
-
-Tangle AVS'sTestnet
-```bash
-./target/release/tangle
 ```
 
 ---

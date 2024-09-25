@@ -4,8 +4,7 @@ use crate::Config;
 use alloy_primitives::{Address, U256};
 use alloy_rpc_types::TransactionReceipt;
 use async_trait::async_trait;
-use eigen_contracts::DelegationManager;
-use eigen_contracts::StrategyManager;
+use eigen_contracts::{DelegationManager, OperatorDetails, StrategyManager};
 
 use super::{reader::ElReader, ElChainContractManager};
 
@@ -34,7 +33,7 @@ impl<T: Config> ElWriter for ElChainContractManager<T> {
     ) -> Result<TransactionReceipt, AvsError> {
         log::info!("registering operator {} to EigenLayer", operator.address);
 
-        let op_details = DelegationManager::OperatorDetails {
+        let op_details = OperatorDetails {
             __deprecated_earningsReceiver: operator.earnings_receiver_address,
             stakerOptOutWindowBlocks: operator.staker_opt_out_window_blocks,
             delegationApprover: operator.delegation_approver_address,
@@ -67,7 +66,7 @@ impl<T: Config> ElWriter for ElChainContractManager<T> {
             operator.address
         );
 
-        let op_details = DelegationManager::OperatorDetails {
+        let op_details = OperatorDetails {
             __deprecated_earningsReceiver: operator.earnings_receiver_address,
             stakerOptOutWindowBlocks: operator.staker_opt_out_window_blocks,
             delegationApprover: operator.delegation_approver_address,

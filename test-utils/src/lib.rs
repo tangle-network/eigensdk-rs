@@ -13,7 +13,7 @@ mod tests {
         env_logger::init();
 
         // ---------------- BLS ----------------
-        let bls_pair = KeyPair::gen_random().unwrap();
+        let bls_pair = KeyPair::gen_random();
         bls_pair
             .save_to_file("./keystore/bls", BLS_PASSWORD)
             .unwrap();

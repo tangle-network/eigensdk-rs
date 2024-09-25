@@ -162,12 +162,16 @@ fn decrypt_data_v3(crypto_json: &CryptoJSON, auth: &str) -> Result<Vec<u8>, Box<
         )));
     }
 
-    let mac = hex::decode(&crypto_json.mac)?;
-    let iv = hex::decode(&crypto_json.cipher_params.iv)?;
-    let cipher_text = hex::decode(&crypto_json.cipher_text)?;
+    let mac = hex::decode(&crypto_json.mac)
+        .map_err(|e| io::Error::new(ErrorKind::InvalidInput, e.to_string()))?;
+    let iv = hex::decode(&crypto_json.cipher_params.iv)
+        .map_err(|e| io::Error::new(ErrorKind::InvalidInput, e.to_string()))?;
+    let cipher_text = hex::decode(&crypto_json.cipher_text)
+        .map_err(|e| io::Error::new(ErrorKind::InvalidInput, e.to_string()))?;
 
     let kdf_params: serde_json::Value = serde_json::from_value(crypto_json.kdf_params.clone())?;
-    let salt = hex::decode(kdf_params["salt"].as_str().ok_or("missing salt")?)?;
+    let salt = hex::decode(kdf_params["salt"].as_str().ok_or("missing salt")?)
+        .map_err(|e| io::Error::new(ErrorKind::InvalidInput, e.to_string()))?;
     let scrypt_n = kdf_params["n"].as_u64().ok_or("missing n")? as u8;
     let scrypt_p = kdf_params["p"].as_u64().ok_or("missing p")? as u32;
     let scrypt_params = Params::new(

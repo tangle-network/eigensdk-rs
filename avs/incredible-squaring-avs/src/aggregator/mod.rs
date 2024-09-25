@@ -1,9 +1,9 @@
 use crate::{
+    avs::Bn254::{G1Point, G2Point},
+    avs::NonSignerStakesAndSignature,
     avs::{
         writer::IncredibleSquaringWriter,
-        IncredibleSquaringContractManager,
-        IncredibleSquaringTaskManager::{self, Task, TaskResponse},
-        SetupConfig, SignedTaskResponse,
+        IncredibleSquaringContractManager, SetupConfig, SignedTaskResponse, {Task, TaskResponse},
     },
     get_task_response_digest,
     operator::OperatorError,
@@ -185,7 +185,7 @@ where
         let non_signer_pubkeys = bls_agg_service_resp
             .non_signers_pubkeys_g1
             .into_iter()
-            .map(|pubkey| IncredibleSquaringTaskManager::G1Point {
+            .map(|pubkey| G1Point {
                 X: pubkey.x,
                 Y: pubkey.y,
             })
@@ -194,26 +194,25 @@ where
         let quorum_apks = bls_agg_service_resp
             .quorum_apks_g1
             .into_iter()
-            .map(|apk| IncredibleSquaringTaskManager::G1Point { X: apk.x, Y: apk.y })
+            .map(|apk| G1Point { X: apk.x, Y: apk.y })
             .collect();
 
-        let non_signer_stakes_and_signature =
-            IncredibleSquaringTaskManager::NonSignerStakesAndSignature {
-                nonSignerPubkeys: non_signer_pubkeys,
-                quorumApks: quorum_apks,
-                apkG2: IncredibleSquaringTaskManager::G2Point {
-                    X: bls_agg_service_resp.signers_apk_g2.x,
-                    Y: bls_agg_service_resp.signers_apk_g2.y,
-                },
-                sigma: IncredibleSquaringTaskManager::G1Point {
-                    X: bls_agg_service_resp.signers_agg_sig_g1.g1_point.x,
-                    Y: bls_agg_service_resp.signers_agg_sig_g1.g1_point.y,
-                },
-                nonSignerQuorumBitmapIndices: bls_agg_service_resp.non_signer_quorum_bitmap_indices,
-                quorumApkIndices: bls_agg_service_resp.quorum_apk_indices,
-                totalStakeIndices: bls_agg_service_resp.total_stake_indices,
-                nonSignerStakeIndices: bls_agg_service_resp.non_signer_stake_indices,
-            };
+        let non_signer_stakes_and_signature = NonSignerStakesAndSignature {
+            nonSignerPubkeys: non_signer_pubkeys,
+            quorumApks: quorum_apks,
+            apkG2: G2Point {
+                X: bls_agg_service_resp.signers_apk_g2.x,
+                Y: bls_agg_service_resp.signers_apk_g2.y,
+            },
+            sigma: G1Point {
+                X: bls_agg_service_resp.signers_agg_sig_g1.g1_point.x,
+                Y: bls_agg_service_resp.signers_agg_sig_g1.g1_point.y,
+            },
+            nonSignerQuorumBitmapIndices: bls_agg_service_resp.non_signer_quorum_bitmap_indices,
+            quorumApkIndices: bls_agg_service_resp.quorum_apk_indices,
+            totalStakeIndices: bls_agg_service_resp.total_stake_indices,
+            nonSignerStakeIndices: bls_agg_service_resp.non_signer_stake_indices,
+        };
 
         log::info!(
             "Threshold reached. Sending aggregated response onchain. {}",
@@ -255,10 +254,7 @@ where
 
         log::info!("Received signed task response: {:?}", signed_task_response);
 
-        let task_response = IncredibleSquaringTaskManager::TaskResponse::abi_decode(
-            &signed_task_response.task_response,
-            true,
-        )?;
+        let task_response = TaskResponse::abi_decode(&signed_task_response.task_response, true)?;
         let task_index = task_response.referenceTaskIndex;
         let task_response_digest = get_task_response_digest(&task_response);
         let task_response_digest_u256 = U256::from_le_bytes(task_response_digest.0);

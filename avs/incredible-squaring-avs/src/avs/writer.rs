@@ -1,11 +1,12 @@
+use super::Bn254::G1Point;
+use super::NonSignerStakesAndSignature;
+use super::{IncredibleSquaringContractManager, IncredibleSquaringTaskManager};
+use super::{Task, TaskResponse, TaskResponseMetadata};
 use alloy_primitives::{Bytes, U256};
 use alloy_rpc_types::TransactionReceipt;
 use async_trait::async_trait;
 use eigen_utils::types::{AvsError, TaskIndex};
 use eigen_utils::Config;
-
-use super::IncredibleSquaringTaskManager::{Task, TaskResponse, TaskResponseMetadata};
-use super::{IncredibleSquaringContractManager, IncredibleSquaringTaskManager};
 
 #[async_trait]
 pub trait IncredibleSquaringWriter: Send + Sync {
@@ -21,14 +22,14 @@ pub trait IncredibleSquaringWriter: Send + Sync {
         task: Task,
         task_response: TaskResponse,
         task_response_metadata: TaskResponseMetadata,
-        pubkeys_of_non_signing_operators: Vec<IncredibleSquaringTaskManager::G1Point>,
+        pubkeys_of_non_signing_operators: Vec<G1Point>,
     ) -> Result<TransactionReceipt, AvsError>;
 
     async fn send_aggregated_response(
         &self,
         task: Task,
         task_response: TaskResponse,
-        non_signer_stakes_and_signature: IncredibleSquaringTaskManager::NonSignerStakesAndSignature,
+        non_signer_stakes_and_signature: NonSignerStakesAndSignature,
     ) -> Result<TransactionReceipt, AvsError>;
 }
 
@@ -74,7 +75,7 @@ impl<T: Config> IncredibleSquaringWriter for IncredibleSquaringContractManager<T
         task: Task,
         task_response: TaskResponse,
         task_response_metadata: TaskResponseMetadata,
-        pubkeys_of_non_signing_operators: Vec<IncredibleSquaringTaskManager::G1Point>,
+        pubkeys_of_non_signing_operators: Vec<G1Point>,
     ) -> Result<TransactionReceipt, AvsError> {
         let task_manager = IncredibleSquaringTaskManager::new(
             self.task_manager_addr,
@@ -98,7 +99,7 @@ impl<T: Config> IncredibleSquaringWriter for IncredibleSquaringContractManager<T
         &self,
         task: Task,
         task_response: TaskResponse,
-        non_signer_stakes_and_signature: IncredibleSquaringTaskManager::NonSignerStakesAndSignature,
+        non_signer_stakes_and_signature: NonSignerStakesAndSignature,
     ) -> Result<TransactionReceipt, AvsError> {
         let task_manager = IncredibleSquaringTaskManager::new(
             self.task_manager_addr,

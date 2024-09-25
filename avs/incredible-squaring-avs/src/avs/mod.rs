@@ -4,45 +4,58 @@ pub mod writer;
 
 use alloy_primitives::{Address, Bytes, U256};
 use alloy_rpc_types::{Log, TransactionReceipt};
-use alloy_sol_types::sol;
 use eigen_contracts::RegistryCoordinator;
 use eigen_utils::{
     crypto::bls::{G1Point, Signature},
     types::{AvsError, OperatorId},
     Config,
 };
+pub use erc_20_mock::Erc20Mock;
+pub use incredible_squaring_service_manager::IncredibleSquaringServiceManager;
+pub use incredible_squaring_task_manager::IBLSSignatureChecker::NonSignerStakesAndSignature;
+pub use incredible_squaring_task_manager::IBLSSignatureChecker::QuorumStakeTotals;
+pub use incredible_squaring_task_manager::IIncredibleSquaringTaskManager::{
+    Task, TaskResponse, TaskResponseMetadata,
+};
+pub use incredible_squaring_task_manager::IncredibleSquaringTaskManager;
+pub use incredible_squaring_task_manager::BN254 as Bn254;
 use serde::{Deserialize, Serialize};
-use IncredibleSquaringTaskManager::{Task, TaskResponse, TaskResponseMetadata};
 
-sol!(
-    #[allow(missing_docs)]
-    #[derive(Debug)]
-    #[sol(rpc)]
-    IncredibleSquaringTaskManager,
-    "./contracts/out/IncredibleSquaringTaskManager.sol/IncredibleSquaringTaskManager.json"
-);
+mod incredible_squaring_task_manager {
+    alloy_sol_types::sol!(
+        #[allow(missing_docs)]
+        #[derive(Debug)]
+        #[sol(rpc)]
+        IncredibleSquaringTaskManager,
+        "./contracts/out/IncredibleSquaringTaskManager.sol/IncredibleSquaringTaskManager.json"
+    );
+}
 
-sol!(
+mod incredible_squaring_service_manager {
+    alloy_sol_types::sol!(
     #[allow(missing_docs)]
     #[derive(Debug)]
     #[sol(rpc)]
     IncredibleSquaringServiceManager,
     "./contracts/out/IncredibleSquaringServiceManager.sol/IncredibleSquaringServiceManager.json"
 );
+}
 
-sol!(
-    #[allow(missing_docs)]
-    #[derive(Debug)]
-    #[sol(rpc)]
-    Erc20Mock,
-    "./contracts/out/ERC20Mock.sol/ERC20Mock.json"
-);
+mod erc_20_mock {
+    alloy_sol_types::sol!(
+        #[allow(missing_docs)]
+        #[derive(Debug)]
+        #[sol(rpc)]
+        Erc20Mock,
+        "./contracts/out/ERC20Mock.sol/ERC20Mock.json"
+    );
+}
 
 #[derive(Debug, Clone)]
 pub struct TaskResponseData {
     pub task_response: TaskResponse,
     pub task_response_metadata: TaskResponseMetadata,
-    pub non_signing_operator_keys: Vec<IncredibleSquaringTaskManager::G1Point>,
+    pub non_signing_operator_keys: Vec<Bn254::G1Point>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,7 +160,7 @@ impl<T: Config> IncredibleSquaringContractManager<T> {
                 task_response_metadata,
                 pubkeys_of_non_signing_operators
                     .iter()
-                    .map(|pt| IncredibleSquaringTaskManager::G1Point { X: pt.x, Y: pt.y })
+                    .map(|pt| Bn254::G1Point { X: pt.x, Y: pt.y })
                     .collect(),
             )
             .send()
@@ -161,7 +174,7 @@ impl<T: Config> IncredibleSquaringContractManager<T> {
         &self,
         task: Task,
         task_response: TaskResponse,
-        non_signer_stakes_and_signature: IncredibleSquaringTaskManager::NonSignerStakesAndSignature,
+        non_signer_stakes_and_signature: NonSignerStakesAndSignature,
     ) -> Result<TransactionReceipt, AvsError> {
         let task_manager = IncredibleSquaringTaskManager::new(
             self.task_manager_addr,

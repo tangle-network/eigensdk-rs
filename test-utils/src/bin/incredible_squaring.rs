@@ -11,12 +11,27 @@ use eigen_utils::types::{operator_id_from_key_pair, OperatorInfo, OperatorPubkey
 use incredible_squaring_avs::operator::*;
 use k256::ecdsa::SigningKey;
 use k256::elliptic_curve::SecretKey;
+use std::env;
 use test_utils::anvil::testnet::incredible_squaring::*;
 
 #[tokio::main]
 async fn main() {
     let _ = env_logger::try_init();
-    run_incredible_squaring_testnet().await;
+    let contract_addresses = run_incredible_squaring_testnet().await;
+    println!("Contract Addresses: {contract_addresses}");
+    println!("The Incredible Squaring Testnet is now running. Press Ctrl-C to exit...");
+    tokio::signal::ctrl_c()
+        .await
+        .expect("Failed to listen for Ctrl-C");
+}
+
+pub fn env_init() {
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info");
+    }
+    env::set_var("BLS_PASSWORD", "BLS_PASSWORD");
+    env::set_var("ECDSA_PASSWORD", "ECDSA_PASSWORD");
+    let _ = env_logger::try_init();
 }
 
 /// Sets up an Operator, given the [ContractAddresses] for the running Testnet you would like utilize
@@ -132,15 +147,6 @@ mod tests {
     use alloy_rpc_types_eth::Log;
     use incredible_squaring_avs::avs::IncredibleSquaringTaskManager;
     use std::env;
-
-    fn env_init() {
-        if env::var("RUST_LOG").is_err() {
-            env::set_var("RUST_LOG", "info");
-        }
-        env::set_var("BLS_PASSWORD", "BLS_PASSWORD");
-        env::set_var("ECDSA_PASSWORD", "ECDSA_PASSWORD");
-        let _ = env_logger::try_init();
-    }
 
     #[tokio::test]
     async fn test_incredible_squaring_deployment() {

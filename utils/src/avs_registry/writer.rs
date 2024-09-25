@@ -9,10 +9,10 @@ use alloy_provider::Provider;
 use alloy_rpc_types::TransactionReceipt;
 use alloy_signer::k256::ecdsa;
 use alloy_signer::Signer as alloySigner;
-use eigen_contracts::RegistryCoordinator;
-use eigen_contracts::RegistryCoordinator::SignatureWithSaltAndExpiry;
+use eigen_contracts::{
+    Bn254, PubkeyRegistrationParams, RegistryCoordinator, SignatureWithSaltAndExpiry,
+};
 use k256::ecdsa::VerifyingKey;
-use rand::Rng;
 
 pub trait AvsRegistryChainWriterTrait {
     async fn register_operator(
@@ -81,16 +81,16 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         let g1_pubkey_bn254 = bls_key_pair.get_pub_key_g1();
         let g2_pubkey_bn254 = bls_key_pair.get_pub_key_g2();
 
-        let pubkey_reg_params = RegistryCoordinator::PubkeyRegistrationParams {
-            pubkeyRegistrationSignature: RegistryCoordinator::G1Point {
+        let pubkey_reg_params = PubkeyRegistrationParams {
+            pubkeyRegistrationSignature: Bn254::G1Point {
                 X: signed_msg.x,
                 Y: signed_msg.y,
             },
-            pubkeyG1: RegistryCoordinator::G1Point {
+            pubkeyG1: Bn254::G1Point {
                 X: g1_pubkey_bn254.x,
                 Y: g1_pubkey_bn254.y,
             },
-            pubkeyG2: RegistryCoordinator::G2Point {
+            pubkeyG2: Bn254::G2Point {
                 X: g2_pubkey_bn254.x,
                 Y: g2_pubkey_bn254.y,
                 //X: [g2_pubkey_bn254.x[1], g2_pubkey_bn254.x[0]],
@@ -99,11 +99,8 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         };
 
         // Generate a random salt and 1 hour expiry for the signature
-        let mut rng = rand::thread_rng();
-        let mut operator_to_avs_registration_sig_salt = [0u8; 32];
-        rng.fill(&mut operator_to_avs_registration_sig_salt);
-        let operator_to_avs_registration_sig_salt =
-            FixedBytes::from(operator_to_avs_registration_sig_salt);
+        let rng: [u8; 32] = rand::random();
+        let operator_to_avs_registration_sig_salt = FixedBytes::from(rng);
 
         let cur_block_num = self.eth_client_http.get_block_number().await?;
         let cur_block = self
@@ -194,16 +191,16 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         let g1_pubkey_bn254 = bls_key_pair.get_pub_key_g1();
         let g2_pubkey_bn254 = bls_key_pair.get_pub_key_g2();
 
-        let pubkey_reg_params = RegistryCoordinator::PubkeyRegistrationParams {
-            pubkeyRegistrationSignature: RegistryCoordinator::G1Point {
+        let pubkey_reg_params = PubkeyRegistrationParams {
+            pubkeyRegistrationSignature: Bn254::G1Point {
                 X: signed_msg.g1_point.x,
                 Y: signed_msg.g1_point.y,
             },
-            pubkeyG1: RegistryCoordinator::G1Point {
+            pubkeyG1: Bn254::G1Point {
                 X: g1_pubkey_bn254.x,
                 Y: g1_pubkey_bn254.y,
             },
-            pubkeyG2: RegistryCoordinator::G2Point {
+            pubkeyG2: Bn254::G2Point {
                 X: g2_pubkey_bn254.x,
                 Y: g2_pubkey_bn254.y,
             },
@@ -235,12 +232,11 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         let mut signature = operator_signature.as_bytes();
         signature[64] += 27;
 
-        let operator_signature_with_salt_and_expiry =
-            RegistryCoordinator::SignatureWithSaltAndExpiry {
-                signature: Bytes::from(signature),
-                salt: operator_to_avs_registration_sig_salt,
-                expiry: operator_to_avs_registration_sig_expiry,
-            };
+        let operator_signature_with_salt_and_expiry = SignatureWithSaltAndExpiry {
+            signature: Bytes::from(signature),
+            salt: operator_to_avs_registration_sig_salt,
+            expiry: operator_to_avs_registration_sig_expiry,
+        };
 
         let registry_coordinator =
             RegistryCoordinator::new(self.registry_coordinator_addr, self.eth_client_http.clone());
