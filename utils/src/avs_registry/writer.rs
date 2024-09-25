@@ -13,7 +13,6 @@ use eigen_contracts::{
     Bn254, PubkeyRegistrationParams, RegistryCoordinator, SignatureWithSaltAndExpiry,
 };
 use k256::ecdsa::VerifyingKey;
-use rand::Rng;
 
 pub trait AvsRegistryChainWriterTrait {
     async fn register_operator(
@@ -100,11 +99,8 @@ impl<T: Config> AvsRegistryChainWriterTrait for AvsRegistryContractManager<T> {
         };
 
         // Generate a random salt and 1 hour expiry for the signature
-        let mut rng = rand::thread_rng();
-        let mut operator_to_avs_registration_sig_salt = [0u8; 32];
-        rng.fill(&mut operator_to_avs_registration_sig_salt);
-        let operator_to_avs_registration_sig_salt =
-            FixedBytes::from(operator_to_avs_registration_sig_salt);
+        let rng: [u8; 32] = rand::random();
+        let operator_to_avs_registration_sig_salt = FixedBytes::from(rng);
 
         let cur_block_num = self.eth_client_http.get_block_number().await?;
         let cur_block = self

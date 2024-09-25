@@ -47,6 +47,19 @@ pub struct ContractAddresses {
     pub operator: Address,
 }
 
+impl std::fmt::Display for ContractAddresses {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Contract Addresses:")?;
+        writeln!(f, "  Service Manager:          {}", self.service_manager)?;
+        writeln!(f, "  Registry Coordinator:     {}", self.registry_coordinator)?;
+        writeln!(f, "  Operator State Retriever: {}", self.operator_state_retriever)?;
+        writeln!(f, "  Delegation Manager:       {}", self.delegation_manager)?;
+        writeln!(f, "  AVS Directory:            {}", self.avs_directory)?;
+        writeln!(f, "  Operator:                 {}", self.operator)?;
+        Ok(())
+    }
+}
+
 /// Spawns and runs an Anvil Node, deploying the Smart Contracts that are relevant to
 /// the Incredible Squaring AVS to it.
 ///

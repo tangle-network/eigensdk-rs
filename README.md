@@ -110,7 +110,7 @@ The full test starts a local Anvil testnet, deploys all the required contracts t
 
 1. Build
 ```bash
-cargo build --release
+cargo build --release -p test-utils
 ```
 
 2. Run

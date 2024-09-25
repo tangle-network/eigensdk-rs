@@ -86,11 +86,12 @@ pub enum OperatorError {
 }
 
 /// Incredible Squaring AVS Operator Struct
+#[derive(Clone)]
 pub struct Operator<T: Config, I: OperatorInfoServiceTrait> {
     config: NodeConfig,
     node_api: NodeApi,
     avs_registry_contract_manager: AvsRegistryContractManager<T>,
-    incredible_squaring_contract_manager: IncredibleSquaringContractManager<T>,
+    pub incredible_squaring_contract_manager: IncredibleSquaringContractManager<T>,
     eigenlayer_contract_manager: ElChainContractManager<T>,
     bls_keypair: KeyPair,
     operator_id: FixedBytes<32>,
