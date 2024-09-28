@@ -35,8 +35,8 @@ use std::pin::Pin;
 use std::str::FromStr;
 use thiserror::Error;
 
-const AVS_NAME: &str = "incredible-squaring";
-const SEM_VER: &str = "0.0.1";
+pub const AVS_NAME: &str = "incredible-squaring";
+pub const SEM_VER: &str = "0.0.1";
 
 /// Error type specific to the Operator for the Incredible Squaring AVS
 #[derive(Debug, Error)]
@@ -88,20 +88,20 @@ pub enum OperatorError {
 /// Incredible Squaring AVS Operator Struct
 #[derive(Clone)]
 pub struct Operator<T: Config, I: OperatorInfoServiceTrait> {
-    config: NodeConfig,
-    node_api: NodeApi,
-    avs_registry_contract_manager: AvsRegistryContractManager<T>,
+    pub config: NodeConfig,
+    pub node_api: NodeApi,
+    pub avs_registry_contract_manager: AvsRegistryContractManager<T>,
     pub incredible_squaring_contract_manager: IncredibleSquaringContractManager<T>,
-    eigenlayer_contract_manager: ElChainContractManager<T>,
-    bls_keypair: KeyPair,
-    operator_id: FixedBytes<32>,
-    operator_addr: Address,
-    aggregator_server_ip_port_addr: String,
+    pub eigenlayer_contract_manager: ElChainContractManager<T>,
+    pub bls_keypair: KeyPair,
+    pub operator_id: FixedBytes<32>,
+    pub operator_addr: Address,
+    pub aggregator_server_ip_port_addr: String,
     pub aggregator_server: Aggregator<T, I>,
     pub aggregator_rpc_client: AggregatorRpcClient,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EigenGadgetProvider {
     pub provider: RootProvider<BoxTransport, Ethereum>,
 }
